@@ -10,12 +10,13 @@
   let savedOptions = {};   // options 页保存的设置，启动任务时随 job 下发
   let liveSig = '';        // 上次渲染的统计/当前项签名：未变化则跳过 DOM 更新
   let itemsSig = '';       // 上次渲染的日志列表签名
+  let earliestMap = null;  // probe 返回的各板块最早数据年 {labs,imaging}，null = 未知
   const T = function (key, vars) { return core.t(lang, key, vars); };
 
   function renderStatic() {
     const map = {
       't-appTitle': 'appTitle', 't-sections': 'sections', 't-labs': 'labs', 't-imaging': 'imaging',
-      't-yearsBack': 'yearsBack', 't-onlyNew': 'onlyNew', 't-dryRun': 'dryRun',
+      't-period': 'period', 't-onlyNew': 'onlyNew', 't-dryRun': 'dryRun',
     };
     for (const id of Object.keys(map)) $(id).textContent = T(map[id]);
     document.documentElement.dir = core.isRtl(lang) ? 'rtl' : 'ltr';   // 阿拉伯语等 RTL 语言
@@ -65,6 +66,46 @@
     } else {
       setStatus(T('status') + ': OK', 'ok');
     }
+    // 时间段选项随探测结果落地：已知最早数据 → 只列真实区间；失败 → 固定档位回退
+    earliestMap = (probe && probe.earliest) || null;
+    renderPeriods(false);
+  }
+
+  /* 时间段选项：探测到最早数据 → 只列出 [最早年..今年]（真实可下载的区间）；
+     未知 → 回退固定档位（行为与旧版一致）。勾选板块变化时按其最早年重算。 */
+  function renderPeriods(detecting) {
+    const sel = $('period');
+    const thisYear = new Date().getFullYear();
+    if (detecting) {
+      const y = thisYear - (parseInt(savedOptions.yearsBack, 10) || 6);
+      sel.innerHTML = '<option value="' + y + '">' + escapeHtml(T('periodDetecting')) + '</option>';
+      return;
+    }
+    const known = [
+      $('labs').checked && earliestMap && earliestMap.labs,
+      $('imaging').checked && earliestMap && earliestMap.imaging,
+    ].filter(function (y) { return typeof y === 'number'; });
+    const years = known.length ? core.buildPeriodOptions(Math.min.apply(null, known), thisYear) : [];
+    let html = '';
+    if (!years.length) {
+      [1, 3, 6, 10, 30].forEach(function (n) {
+        html += '<option value="' + (thisYear - n) + '">' + escapeHtml(T('periodFallback', { n: n })) + '</option>';
+      });
+    } else {
+      years.forEach(function (y) {
+        const label = y === years[0] ? T('periodAll', { y: y })
+          : (y === thisYear ? T('periodThisYear') : T('periodFrom', { y: y }));
+        html += '<option value="' + y + '">' + escapeHtml(label) + '</option>';
+      });
+    }
+    const prev = parseInt(sel.value, 10);
+    sel.innerHTML = html;
+    // 尽量保持已选起始年；首次渲染取最接近旧「回溯年数」偏好的档位
+    const opts = Array.prototype.map.call(sel.options, function (o) { return parseInt(o.value, 10); });
+    const want = Number.isInteger(prev) ? prev : thisYear - (parseInt(savedOptions.yearsBack, 10) || 6);
+    let best = opts[0];
+    for (const y of opts) if (Math.abs(y - want) < Math.abs(best - want)) best = y;
+    sel.value = String(best);
   }
 
   // 目标文件夹行 + 打开按钮的行为均随保存模式而定
@@ -117,8 +158,8 @@
     }
 
     $('controls').hidden = false;
-    $('yearsBack').value = opts.yearsBack;
     $('onlyNew').checked = opts.dedupe;
+    renderPeriods(true);   // 先显示「检测中」，probe 返回后换成真实可下载区间
     renderTarget();
 
     probeStatus();
@@ -129,9 +170,12 @@
   function collectJob() {
     return {
       sections: { labs: $('labs').checked, imaging: $('imaging').checked },
-      startYear: new Date().getFullYear() - (parseInt($('yearsBack').value, 10) || 6),
+      // 选中的起始年（探测完成前启动则沿用旧「回溯年数」默认）
+      startYear: parseInt($('period').value, 10) ||
+        (new Date().getFullYear() - (parseInt(savedOptions.yearsBack, 10) || 6)),
       endYear: new Date().getFullYear(),
       dryRun: $('dryRun').checked,
+      earliest: earliestMap || undefined,   // 流水线据此收紧起始年，跳过无数据区间
       // 已保存设置 + 弹窗里的即时覆盖
       options: Object.assign({}, savedOptions, { dedupe: $('onlyNew').checked }),
     };
@@ -308,6 +352,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     $('start').addEventListener('click', start);
     $('dryRun').addEventListener('change', updateStartLabel);
+    // 勾选板块变化 → 可选时间段随之按其最早数据年重算
+    $('labs').addEventListener('change', function () { renderPeriods(false); });
+    $('imaging').addEventListener('change', function () { renderPeriods(false); });
     $('cancel').addEventListener('click', function () {
       // 立即反馈：按钮进入「取消中」禁用态，等 pipeline 实际停止后由 exitRunningUI 复原
       this.disabled = true;

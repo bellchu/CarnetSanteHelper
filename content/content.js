@@ -41,10 +41,25 @@ if (self.__CSH_CONTENT) {
         });
         if (!res.ok) { lastErr = 'HTTP ' + res.status; continue; }
         const j = await res.json();
-        return {
+        const out = {
           hasToken: true,
           profile: { name: ((j.Prenom || '') + ' ' + (j.Nom || '')).trim(), id: j.IdCitoyen },
         };
+        // 顺带探测各板块最早数据年份：弹窗据此只列出真实可下载的时间段
+        try {
+          const earliest = await pipeline.probeEarliest({ token: token, apiBase: b }, {
+            fetchImpl: function (url, init) { return fetch(url, init); },
+            store: {
+              async get(k) { const o = await chrome.storage.local.get(k); return o[k]; },
+              async set(k, v) { await chrome.storage.local.set({ [k]: v }); },
+            },
+            sleep: function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); },
+            log: function (level, msg) { post({ type: 'log', level: level, msg: msg }); },
+            refresh: function () { return Promise.resolve(readToken()); },
+          });
+          out.earliest = { labs: earliest.labs, imaging: earliest.imaging };
+        } catch (e2) { /* 探测失败不影响登录状态展示 */ }
+        return out;
       } catch (e) {
         lastErr = String((e && e.message) || e);
       }

@@ -77,7 +77,7 @@ Already cloned? From the repo, run `bash tools/install.sh` (macOS/Linux) or `pow
 | Root / section subfolders | Archive layout, default `Carnet santé/Prélèvements` + `Imagerie médicale` (live preview in settings; absolute paths are converted to relative — the browser forbids writing outside Downloads) |
 | Filename template | Variables `{date} {label} {prescriber} {section} {id} {year}`, default `{date} - {label}` |
 | Delay between reports | Default 400 ms — please keep it above 0, it's polite to the site |
-| Years back | Default 6 (the imaging API caps one query at ~6 years; the extension splits automatically) |
+| Time period | Detected automatically: on open the extension probes your earliest available data and only offers periods that actually exist (avoids errors on empty ranges); fixed ranges if detection fails |
 | Skip downloaded | Dedup switch; *Clear download history* forces a full re-download |
 
 ## How it works & privacy
@@ -106,4 +106,4 @@ Everything runs locally in your browser. **The extension talks to no third-party
 - Vaccinations are on a different portal; per-year lab values (`ResultatsAnalyse`) are not included.
 - For organizing **your own** health records — please use responsibly (the default delay is there for a reason).
 
-Developers: `npm test` — 30 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.
+Developers: `npm test` — 36 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.

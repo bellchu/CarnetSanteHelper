@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 | 根文件夹 / 两个子文件夹名 | 归档结构，默认 `Carnet santé/Prélèvements`、`Carnet santé/Imagerie médicale`（设置页有实时预览；填绝对路径会自动转为相对路径——浏览器禁止写到下载目录以外） |
 | 文件名模板 | 可用变量 `{date} {label} {prescriber} {section} {id} {year}`，默认 `{date} - {label}` |
 | 每份报告间隔 | 默认 400ms——请保持大于 0，对站点友好 |
-| 回溯年数 | 默认 6 年（影像接口单次查询跨度上限约 6 年，扩展会自动分段） |
+| 时间段 | 自动检测：打开弹窗时先探测最早可用数据，只列出真实存在数据的时间段（避免查询无数据区间报错）；检测失败则回退固定档位 |
 | 跳过已下载 | 去重开关；「清除已下载记录」可强制全量重下 |
 
 ## 工作原理与隐私
@@ -106,4 +106,4 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 - 不含疫苗接种（另一门户）；不含逐年化验数值明细（`ResultatsAnalyse`）。
 - 仅供整理**本人**健康记录——请合理使用（默认请求间隔即是为此）。
 
-开发者：`npm test` —— 30 个 node:test 单元 + 集成测试（针对模拟 `/api/1` 的完整流水线）。目录：`lib/`（纯逻辑与编排）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`、`folder/`。
+开发者：`npm test` —— 36 个 node:test 单元 + 集成测试（针对模拟 `/api/1` 的完整流水线）。目录：`lib/`（纯逻辑与编排）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`、`folder/`。

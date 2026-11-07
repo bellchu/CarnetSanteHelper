@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 | Carpeta raíz / subcarpetas | Estructura del archivo, por defecto `Carnet santé/Prélèvements` e `Imagerie médicale` (vista previa en vivo; las rutas absolutas se convierten en relativas — el navegador prohíbe escribir fuera de Descargas) |
 | Plantilla de nombre | Variables `{date} {label} {prescriber} {section} {id} {year}`, por defecto `{date} - {label}` |
 | Retardo entre informes | Por defecto 400 ms — mantenlo por encima de 0, por cortesía con el sitio |
-| Años hacia atrás | Por defecto 6 (la API de imagen limita una consulta a ~6 años; la extensión divide automáticamente) |
+| Período | Detectado automáticamente: al abrir, la extensión sondea sus datos más antiguos y solo ofrece períodos que existen realmente (evita errores en rangos vacíos); rangos fijos si falla la detección |
 | Omitir descargados | Interruptor de deduplicación; *Borrar historial* fuerza una descarga completa |
 
 ## Cómo funciona y privacidad
@@ -106,4 +106,4 @@ Todo ocurre localmente en su navegador. **La extensión no se conecta a ningún 
 - La vacunación está en otro portal; los valores anuales de laboratorio (`ResultatsAnalyse`) no se incluyen.
 - Para organizar **sus propios** expedientes de salud — úselo con sensatez (el retardo por defecto tiene su razón de ser).
 
-Desarrolladores: `npm test` — 30 pruebas unitarias + de integración que simulan todo el pipeline contra un `/api/1` falso. Estructura: `lib/` (lógica + orquestación), `content/` (token + llamadas), `background/` (descargas y estado), `popup/`, `options/`, `folder/`.
+Desarrolladores: `npm test` — 36 pruebas unitarias + de integración que simulan todo el pipeline contra un `/api/1` falso. Estructura: `lib/` (lógica + orquestación), `content/` (token + llamadas), `background/` (descargas y estado), `popup/`, `options/`, `folder/`.

@@ -502,3 +502,147 @@ test('化验功能未开放（gate 403）：跳过板块但不报致命错误', 
   assert.strictEqual(summary.stats.labs.downloaded, 0);
   assert.ok(summary.errors.some(e => e.id === 'gate'));
 });
+
+/* ---------- probeEarliest：最早数据探测（先判断最早数据，再给可选时间段） ---------- */
+
+function earliestEnv(fetchImpl, storeMap, opts) {
+  return makeEnv(fetchImpl, [], storeMap, opts || {});
+}
+function yearOf(u) {
+  const m = /DateDebut=(\d{4})-/.exec(u);
+  return m ? +m[1] : null;
+}
+
+test('probeEarliest：逐年后退找最早年，容忍单年空档；labs 补零 / imaging 不补零', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123', Nom: 'Tremblay', Prenom: 'Jean' }) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({ accessible: true }) },
+    {
+      // 化验：仅 Y 与 Y-2 有数据（Y-1 空档）→ 最早 Y-2；数据后连续两空年（Y-3、Y-4）即停
+      match: (u) => u.includes('/Prelevements?'),
+      reply: (u) => {
+        assert.match(u, /DateDebut=\d{4}-\d{2}-\d{2}&DateFin=\d{4}-\d{2}-\d{2}/);   // 补零
+        const y = yearOf(u);
+        return resJson(y === Y || y === Y - 2 ? [LAB_ITEM] : []);
+      },
+    },
+    {
+      // 影像：仅今年有数据 → 最早 Y；Y-1、Y-2 连续空年后停
+      match: (u) => u.includes('/ExamensImagerie?'),
+      reply: (u) => {
+        assert.match(u, /DateDebut=\d{4}-\d{1,2}-\d{1,2}&DateFin=\d{4}-\d{1,2}-\d{1,2}/); // 不补零
+        return resJson(yearOf(u) === Y ? [EXAM] : []);
+      },
+    },
+  ];
+  const srv = makeFetch(routes);
+  const storeMap = new Map();
+  const r = await pipeline.probeEarliest({ token: 'TOKEN-1' }, earliestEnv(srv.fetchImpl, storeMap));
+
+  assert.strictEqual(r.citizen.id, 'C123');
+  assert.strictEqual(r.labs, Y - 2);       // 跨过 Y-1 单年空档
+  assert.strictEqual(r.imaging, Y);
+  const labYears = srv.calls.filter((c) => c.url.includes('/Prelevements?')).map((c) => yearOf(c.url));
+  const imgYears = srv.calls.filter((c) => c.url.includes('/ExamensImagerie?')).map((c) => yearOf(c.url));
+  assert.strictEqual(Math.min(...labYears), Y - 4);   // 数据后两空年即停，不再探 Y-5
+  assert.ok(!labYears.includes(Y - 5));
+  assert.strictEqual(Math.min(...imgYears), Y - 2);
+  assert.ok(!imgYears.includes(Y - 3));
+  assert.ok(storeMap.has('probeEarliest:C123'));      // 结果已缓存
+});
+
+test('probeEarliest：labs 功能未开放 → labs 为 null 且不做年份查询', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({}, 403) },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: (u) => resJson(yearOf(u) === Y ? [EXAM] : []) },
+  ];
+  const srv = makeFetch(routes);
+  const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, new Map()));
+  assert.strictEqual(r.labs, null);
+  assert.strictEqual(r.imaging, Y);
+  assert.ok(!srv.calls.some((c) => c.url.includes('/Prelevements?')));
+});
+
+test('probeEarliest：早于数据起点的年份报 500 → 视为边界立即停止', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({ accessible: true }) },
+    {
+      // Y-1 起才有数据；更早区间一律 500（不存在数据的区间报错）
+      match: (u) => u.includes('/Prelevements?'),
+      reply: (u) => (yearOf(u) >= Y - 1 ? resJson([LAB_ITEM]) : resJson({}, 500)),
+    },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([]) },
+  ];
+  const srv = makeFetch(routes);
+  const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, new Map()));
+  assert.strictEqual(r.labs, Y - 1);
+  const labYears = srv.calls.filter((c) => c.url.includes('/Prelevements?')).map((c) => yearOf(c.url)).sort();
+  assert.deepStrictEqual(labYears, [Y - 2, Y - 1, Y]);   // 遇 500 即停，不再探更早
+  assert.strictEqual(r.imaging, null);                    // 影像无任何数据 → null
+});
+
+test('probeEarliest：缓存命中时只请求 Citoyens，不再逐年探测', async () => {
+  const routes = () => [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123', Nom: 'Tremblay', Prenom: 'Jean' }) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({ accessible: true }) },
+    { match: (u) => u.includes('/Prelevements?'), reply: (u) => resJson(yearOf(u) === Y ? [LAB_ITEM] : []) },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: (u) => resJson(yearOf(u) === Y ? [EXAM] : []) },
+  ];
+  const storeMap = new Map();
+  const srv1 = makeFetch(routes());
+  const r1 = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv1.fetchImpl, storeMap));
+  assert.strictEqual(r1.labs, Y);
+  assert.strictEqual(r1.imaging, Y);
+
+  const srv2 = makeFetch(routes());
+  const r2 = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv2.fetchImpl, storeMap));
+  assert.deepStrictEqual(r2, r1);
+  assert.strictEqual(srv2.calls.length, 1);                       // 仅 Citoyens
+  assert.ok(srv2.calls[0].url.endsWith('/api/1/Citoyens'));      // 年份探测全部走缓存
+});
+
+test('earliest 收紧起始年：不查询无数据年份（避免报错）；未提供则照旧探测', async () => {
+  const mkRoutes = () => [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    {
+      // Y-1 之前的区间一律 500：模拟「查询不存在数据造成错误」
+      match: (u) => u.includes('/ExamensImagerie?'),
+      reply: (u) => (yearOf(u) >= Y - 1 ? resJson([EXAM]) : resJson({}, 500)),
+    },
+    { match: (u) => u.includes('/ExamenImagerie/') && u.endsWith('/DetailRapport'), reply: () => resJson([{ IdRapport: 'R1', DateRapport: `${Y}-05-15T00:00:00` }]) },
+    { match: (u) => u.includes('/DetailRapport/') && u.endsWith('/Rapport'), reply: () => resBin(IMAGING_PDF) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({ accessible: true }) },
+    {
+      match: (u) => u.includes('/Prelevements?'),
+      reply: (u) => (yearOf(u) >= Y - 1 ? resJson([LAB_ITEM]) : resJson({}, 500)),
+    },
+    { match: (u) => u.includes('/Prelevements/lab-001/Rapports'), reply: () => resJson(LAB_RAPPORTS) },
+  ];
+
+  // 带 earliest：起始年收紧到 Y-1，无数据区间零请求、零错误
+  const srv = makeFetch(mkRoutes());
+  const summary = await pipeline.runSweep(
+    baseJob({ startYear: Y - 6, earliest: { labs: Y - 1, imaging: Y - 1 } }),
+    makeEnv(srv.fetchImpl, [], new Map(), {})
+  );
+  assert.strictEqual(summary.errors.length, 0);
+  assert.strictEqual(summary.stats.imaging.downloaded, 1);
+  assert.strictEqual(summary.stats.labs.downloaded, 1);
+  for (const c of srv.calls) {
+    if (c.url.includes('/Prelevements?') || c.url.includes('/ExamensImagerie?')) {
+      assert.ok(yearOf(c.url) >= Y - 1, '不应查询早于最早数据的年份: ' + c.url);
+    }
+  }
+
+  // 对照：同样的任务不带 earliest → 查到无数据区间、记录区间错误（证明收紧是必要的）
+  const srv2 = makeFetch(mkRoutes());
+  const s2 = await pipeline.runSweep(
+    baseJob({ startYear: Y - 6 }),
+    makeEnv(srv2.fetchImpl, [], new Map(), {})
+  );
+  assert.ok(s2.errors.some((e) => /range/.test(e.id)));
+  assert.ok(srv2.calls.some((c) =>
+    (c.url.includes('/Prelevements?') || c.url.includes('/ExamensImagerie?')) && yearOf(c.url) < Y - 1));
+});

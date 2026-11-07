@@ -77,7 +77,7 @@ Ou deja klone l? Andedan depo a, kouri `bash tools/install.sh` (macOS/Linux) osw
 | Dosiye rasin / sou-dosiye | Estrikti achiv la, pa défòt `Carnet santé/Prélèvements` ak `Imagerie médicale` (aperçu an dirèk; chemen absoli yo konvèti an chemen relatif — navigatè a pa pèmèt ekri deyò dosiye telechajman an) |
 | Modèl non fichye | Variable `{date} {label} {prescriber} {section} {id} {year}`, pa défòt `{date} - {label}` |
 | Intèval ant rapò | 400 ms pa défòt — kite l anlè 0, se rèspe pou sit la |
-| Kantite ane deyè | 6 pa défòt (API imaj la limite yon demann a ~6 an; estansyon an separe otomatikman) |
+| Peryòd | Detekte otomatikman: lè w ouvri l, estansyon an chwazi done ki pi ansyen ou epi li sèlman ofri peryòd ki egziste reyèlman (evite erè sou plaj vid); plaj fiks si deteksyon an echwe |
 | Inyore telechaje | Swit dedoubman; *Efase istwa* fòse yon telechajman konplè |
 
 ## Kòman l mache ak vi prive
@@ -106,4 +106,4 @@ Tout bagay pase lokalman nan navigatè ou a. **Estansyon an pa konekte ak okenn 
 - Vaksinasyon se sou yon lòt pòtal; valè laboratwa anyèl (`ResultatsAnalyse`) pa enkli.
 - Pou òganize **dosye sante ou menm** — itilize l avèk judgement (intèval pa défòt la gen rezon l).
 
-Devlopè: `npm test` — 30 tès inite + entegrasyon ki simile tout pipeline a kont yon `/api/1` fèt ak men. Estrikti: `lib/` (lojik + òkestrasyon), `content/` (jeton + apèl API), `background/` (telechajman eta), `popup/`, `options/`, `folder/`.
+Devlopè: `npm test` — 36 tès inite + entegrasyon ki simile tout pipeline a kont yon `/api/1` fèt ak men. Estrikti: `lib/` (lojik + òkestrasyon), `content/` (jeton + apèl API), `background/` (telechajman eta), `popup/`, `options/`, `folder/`.

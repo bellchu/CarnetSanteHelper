@@ -57,6 +57,14 @@ test('buildRanges：补零/不补零、跨度上限、当年截至今日', () =>
   assert.strictEqual(img[1].to, '2026-11-7');
 });
 
+test('buildPeriodOptions：最早数据年 → 今年的可选起始年列表', () => {
+  assert.deepStrictEqual(core.buildPeriodOptions(2021, 2026), [2021, 2022, 2023, 2024, 2025, 2026]);
+  assert.deepStrictEqual(core.buildPeriodOptions(2026, 2026), [2026]);   // 最早即今年
+  assert.deepStrictEqual(core.buildPeriodOptions(2027, 2026), []);       // 最早晚于今年 → 无效
+  assert.deepStrictEqual(core.buildPeriodOptions(null, 2026), []);       // 未知 → 调用方回退
+  assert.deepStrictEqual(core.buildPeriodOptions('2021', 2026), []);
+});
+
 test('base64 编解码往返 + %PDF 魔数', () => {
   const bytes = new TextEncoder().encode('%PDF-1.4 hello é');
   const b64 = core.bytesToBase64(bytes);

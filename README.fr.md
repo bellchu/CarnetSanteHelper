@@ -77,7 +77,7 @@ Dépôt déjà cloné ? Depuis le dépôt, lancez `bash tools/install.sh` (macOS
 | Dossier racine / sous-dossiers | Structure d'archivage, par défaut `Carnet santé/Prélèvements` et `Imagerie médicale` (aperçu en direct dans les réglages ; les chemins absolus sont convertis en chemins relatifs — le navigateur interdit d'écrire ailleurs) |
 | Modèle de nom de fichier | Variables `{date} {label} {prescriber} {section} {id} {year}`, par défaut `{date} - {label}` |
 | Délai entre rapports | Par défaut 400 ms — merci de le garder au-dessus de 0, c'est poli envers le site |
-| Années en arrière | Par défaut 6 (l'API d'imagerie limite une requête à ~6 ans ; l'extension segmente automatiquement) |
+| Période | Détectée automatiquement : à l'ouverture, l'extension sonde vos données les plus anciennes et ne propose que des périodes existant réellement (évite les erreurs sur plages vides) ; plages fixes si la détection échoue |
 | Ignorer les téléchargés | Interrupteur de dédoublonnage ; *Effacer le journal* force un re-téléchargement complet |
 
 ## Fonctionnement et confidentialité
@@ -106,4 +106,4 @@ Tout se passe localement dans votre navigateur. **L'extension ne contacte aucun 
 - Vaccination sur un autre portail ; valeurs de laboratoire annuelles (`ResultatsAnalyse`) non incluses.
 - Pour organiser **vos propres** dossiers de santé — utilisez-le raisonnablement (le délai par défaut n'est pas là pour rien).
 
-Développeurs : `npm test` — 30 tests unit + intégration simulants tout le pipeline face à un `/api/1` factice. Arborescence : `lib/` (logique + orchestration), `content/` (jeton + appels API), `background/` (téléchargements & état), `popup/`, `options/`, `folder/`.
+Développeurs : `npm test` — 36 tests unit + intégration simulants tout le pipeline face à un `/api/1` factice. Arborescence : `lib/` (logique + orchestration), `content/` (jeton + appels API), `background/` (téléchargements & état), `popup/`, `options/`, `folder/`.

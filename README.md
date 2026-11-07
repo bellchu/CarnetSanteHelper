@@ -1,112 +1,101 @@
-# Carnet santé Helper（Chrome / Edge 扩展）
+# Carnet santé Helper (Chrome / Edge extension)
 
-辅助使用 [Carnet santé Québec](https://carnetsante.gouv.qc.ca)（魁省健康记录门户）：
-一键**批量下载**并**自动整理**两类报告——
+**English** · [Français](README.fr.md) · [中文](README.zh.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Kreyòl ayisyen](README.ht.md)
 
-- **Prélèvements**（化验 / 采样报告）
-- **Imagerie médicale**（医学影像报告）
+Bulk-download and auto-organize your reports from [Carnet santé Québec](https://carnetsante.gouv.qc.ca) — the Quebec health-record portal:
 
-门户本身没有官方批量导出功能，只能一份一份点开下载；本扩展在你的登录会话内自动完成这件事。
+- **Prélèvements** (lab results)
+- **Imagerie médicale** (medical imaging)
 
-## 效果
+The portal has no bulk-export feature; this extension does it for you, inside your own signed-in session. The UI speaks 13 languages and follows your system's light/dark mode.
 
-所有 PDF 按日期与名称整理进浏览器下载目录的子文件夹，并生成汇总清单：
+## What you get
+
+Every PDF filed by date and name, plus a summary index — in your browser's Downloads folder (default) or any folder you pick:
 
 ```
-下载/
+Downloads/
 └── Carnet santé/
     ├── Prélèvements/
     │   └── 2026-02-01 - Hémogramme.pdf
     ├── Imagerie médicale/
     │   └── 2026-05-15 - Radiographie thorax.pdf
-    ├── index-20261107-1530.csv      ← 全部报告的汇总表（日期/名称/开单医生/状态/文件名）
-    └── donnees-20261107-1530.json  ← 同样数据的机器可读版
+    ├── index-20261107-1530.csv      ← summary table of all reports
+    └── donnees-20261107-1530.json   ← same data, machine-readable
 ```
 
-默认**跳过已下载过的报告**（记录保存在本地，可在设置里清除），因此可以定期重跑，只增量下载新报告。
+Already-downloaded reports are **skipped automatically**, so you can re-run periodically and only new reports are fetched.
 
-## 安装
+## Install — once per computer
+
+**Option A · with the install script (easiest updates)**
+
+On a new machine (this repo is private — Git + your GitHub login required):
 
 ```sh
-bash tools/install.sh
+gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
+bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
-脚本自动：克隆/更新代码 → 复制扩展路径到剪贴板 → 打开浏览器扩展管理页（Chrome 或 Edge）。
+Already cloned? Just run `bash tools/install.sh` from the repo. The script updates the code, copies the extension path to your clipboard and opens the browser's extensions page.
 
-你只需（首次一次）：开启「开发者模式」→ 点「加载已解压的扩展程序」→ 粘贴路径（⌘⇧V）回车。
+**Option B · no Git — download a ZIP**
 
-新机器上先克隆再运行：
+1. On GitHub: green **Code** button → **Download ZIP** → unzip it (e.g. `CarnetSanteHelper-main`).
+2. Copy the full path of the **unzipped** folder (not the ZIP file).
 
-```sh
-gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/CarnetSanteHelper/tools/install.sh
-```
+**Then, in Chrome or Edge (the one manual step — browser security requires it for unpublished extensions):**
 
-> 更新：重跑 `bash tools/install.sh`，然后在扩展卡片上点「重新加载 ↻」。
-> 最后一步无法全自动：浏览器安全机制要求未上架扩展必须人工点一次「加载」，这是限制所在。
+1. Open `chrome://extensions` (Edge: `edge://extensions`).
+2. Turn on **Developer mode** (top-right).
+3. Click **Load unpacked** → paste the path (⌘⇧V / Ctrl+Shift+V) → Enter.
 
-## 使用
+✅ **Done when:** a "Carnet santé Helper" card appears on that page. Tip: pin it — click the puzzle-piece icon in the toolbar and pin the extension, so it's always one click away.
 
-1. 正常登录 [carnetsante.gouv.qc.ca](https://carnetsante.gouv.qc.ca)，停留在门户任意页面（登录后即可，不需要停在特定板块）。
-2. 点击扩展图标，弹窗会显示当前登录者姓名。
-3. 勾选要下载的板块（化验 / 影像）、回溯年数（默认 6 年），点「开始下载」。
-   - 可先勾选「仅扫描」做一次演练，确认能发现多少报告。
-4. 进度实时显示在弹窗里；结束后点弹窗顶部的文件夹图标（「打开文件夹」）查看成果。**下载过程中请不要关闭该标签页。**
+**Updating later:** re-run the script (or re-download the ZIP), then click **Reload ↻** on the extension card. That last click can't be automated — it's a browser rule, not a bug.
 
-### 设置（⚙）
+## First use — 4 steps
 
-| 设置 | 说明 |
+1. **Sign in** at [carnetsante.gouv.qc.ca](https://carnetsante.gouv.qc.ca) and stay on any portal page.
+2. **Click the extension icon.** Within a second or two the popup should show *Signed in: your name*. If it reports no session: refresh the portal tab, then reopen the popup.
+3. **First time? Tick "Dry run"** and press *Scan only* — it counts the reports that would be downloaded, without downloading. Happy with the numbers? Untick, then press *Download*.
+4. **Watch the progress** in the popup (progress bar, per-section counts, live file log). When it finishes, open your files with the 📁 button in the popup header. **Don't close the portal tab while it runs.**
+
+## Settings (⚙)
+
+| Setting | What it does |
 |---|---|
-| 报告保存文件夹 | **自选任意磁盘文件夹**（Chrome/Edge 桌面版）：点「选择文件夹…」授权后，报告直接写入该文件夹（含子目录结构）。授权时选「允许每次访问」可免重复授权；未选择或写入失败时自动回退浏览器下载目录 |
-| 根文件夹 / 两个子文件夹名 | 目标文件夹内的归档结构，默认 `Carnet santé/Prélèvements`、`Carnet santé/Imagerie médicale`（设置页有完整保存位置预览；回退模式下相对浏览器下载目录，填绝对路径会自动转为相对路径） |
-| 文件名模板 | 可用变量 `{date} {label} {prescriber} {section} {id} {year}`，默认 `{date} - {label}` |
-| 每份报告间隔 | 请求间隔毫秒数，默认 400ms（对站点友好，请勿调到 0） |
-| 回溯年数 | 默认 6 年（影像接口单次查询跨度上限约 6 年，扩展会自动分段） |
-| 跳过已下载 | 去重开关；「清除已下载记录」可强制全量重下 |
+| Reports folder | **Pick any folder on your disk** (Chrome/Edge desktop): reports are written directly into it, with subfolders. Choose "Allow on every visit" when granting access, to avoid re-authorizing. Falls back to Downloads if unavailable |
+| Root / section subfolders | Archive layout, default `Carnet santé/Prélèvements` + `Imagerie médicale` (live preview in settings; absolute paths are converted to relative — the browser forbids writing outside Downloads) |
+| Filename template | Variables `{date} {label} {prescriber} {section} {id} {year}`, default `{date} - {label}` |
+| Delay between reports | Default 400 ms — please keep it above 0, it's polite to the site |
+| Years back | Default 6 (the imaging API caps one query at ~6 years; the extension splits automatically) |
+| Skip downloaded | Dedup switch; *Clear download history* forces a full re-download |
 
-界面语言支持 13 种：中文 / Français / English，以及魁北克移民常用语言——العربية（阿拉伯语，界面自动 RTL）、Español、Kreyòl ayisyen、Português、Italiano、Filipino、Tiếng Việt、Русский、Українська、ਪੰਜਾਬੀ；并自动跟随系统的深 / 浅色模式。
+## How it works & privacy
 
-## 工作原理
+The portal is an Angular app with a private API. The extension reuses your existing session: it reads the portal's own OIDC token from the page, calls the same `/api/1` endpoints the site itself uses (imaging: list → report metadata → PDF; labs: yearly lists → PDF embedded as base64 in JSON), and saves via `chrome.downloads` or the File System Access API.
 
-门户是无公开 API 的 Angular 单页应用。本扩展复用你浏览器里已有的登录会话：
+Everything runs locally in your browser. **The extension talks to no third-party service and collects/uploads nothing**; the token is only used to fetch your own records.
 
-1. 内容脚本从页面 `sessionStorage` 读取门户自身使用的 OIDC 访问令牌（`oidc.user:*`）；
-2. 以与网站前端完全相同的方式调用其私有 `/api/1` 接口：
-   - 影像：`ExamensImagerie`（列表）→ `DetailRapport`（元数据）→ `.../Rapport`（PDF 二进制）；
-   - 化验：`Prelevements`（按年列出）→ `Rapports`（PDF 以 base64 内嵌在 JSON 中，自动提取）；
-3. PDF 经 `chrome.downloads` API 保存为带子文件夹路径、按模板命名的文件。
+## Troubleshooting
 
-所有处理都在你的浏览器本机完成。**扩展不连接任何第三方服务，不收集、不上传任何数据**；令牌仅用于以你的身份请求你自己的健康记录，不会离开浏览器。
-
-## 故障排查
-
-| 症状 | 处理 |
+| Symptom | Fix |
 |---|---|
-| 列表查询报 HTTP 500（如 `ExamensImagerie?DateDebut=…`） | 服务端对日期跨度/格式敏感：扩展会自动换日期格式重试并按年二分缩小范围；若个别年份仍失败会记入错误并继续——这些年份可能是超出数据保留期（影像/化验在线约 3 年） |
-| 报 "Failed to fetch" | 通常因跨域拦截：扩展已改为优先用页面同源地址调用 API。请确认停留在**已登录**的 `carnetsante.gouv.qc.ca` 标签页，刷新一次该页再点扩展重试 |
-| 每份文件都弹出「保存位置」对话框 | 浏览器开启了「下载前询问每个文件的保存位置」；到 `chrome://settings/downloads`（Edge 为 `edge://settings/downloads`）关闭后重跑即可，已下载的会自动跳过 |
-| 想保存到下载目录以外的位置 | 在 ⚙ 设置点「选择文件夹…」自选任意文件夹（见上方「报告保存文件夹」）；仅在浏览器不支持或授权失效时才会回退到下载目录 |
-| 设置页显示文件夹 ⚠ / popup 目标带 ⚠ | 授权过期（浏览器重启后可能发生）：到设置里重选一次该文件夹，授权提示选「允许每次访问」 |
-| 文件夹写入失败 | 文件夹被移动/删除/所在磁盘拔出时会自动改存浏览器下载目录，并在日志与错误里说明 |
-| 提示未检测到登录会话 | 先登录门户并停留在其页面（`carnetsante.gouv.qc.ca`），刷新一次后再点扩展 |
-| 下载中途大量失败 / 401 | 令牌可能过期，扩展会自动取新令牌重试一次；仍失败就刷新门户页面后重跑（已下载的会自动跳过） |
-| 化验板块显示"功能未开放" | 该功能未对你开启（`PrelevementsAccessibles` 拒绝），扩展会跳过化验只处理影像 |
-| 部分报告失败 | 单份失败不会中断任务，结束后在弹窗错误区查看，可直接重跑补齐 |
-| 找不到下载的文件 | 弹窗点顶部「打开文件夹」图标；或在浏览器下载记录里查看（文件保存在下载目录的 `Carnet santé/` 子文件夹） |
+| Popup says no session | Sign in to the portal, stay on its page, refresh once, reopen the popup |
+| "Failed to fetch" | Network/CORS block: refresh the signed-in portal tab, then retry |
+| A save dialog pops up for every file | Browser setting "Ask where to save each file" is on — turn it off at `chrome://settings/downloads`, then re-run |
+| Folder shows ⚠ / popup target has ⚠ | Folder authorization expired (can happen after a browser restart): re-pick it in ⚙ Settings |
+| Files not in the chosen folder | If the folder was moved/unplugged, files fall back to Downloads — see the errors/log lines in the popup |
+| Many failures / 401 mid-run | Token likely expired — the extension auto-refreshes once; if it persists, refresh the portal page and re-run (finished files are skipped) |
+| "Labs not available" | The labs feature isn't enabled for your account — the extension skips labs and continues with imaging |
+| Some years fail with HTTP 500 | Server is picky about date ranges; the extension retries automatically (format swap → year-by-year). Rare leftovers are recorded as errors and skipped — those years may exceed the online retention (~3 years) |
+| Can't find the files | Popup header 📁 button; or check browser downloads (they're under `Carnet santé/` in Downloads) |
 
-## 已知限制
+## Limits & development
 
-- 依赖门户私有 `/api/1` 端点结构；若政府改版，可能需要更新（端点集中在 `lib/pipeline.js` 顶部，便于修改）。
-- 依赖逆向观察到的行为：化验 `/Rapports` 中 PDF 内嵌为 base64、化验列表项无标题字段（名称从报告 JSON 启发式提取，取不到时回退为「Prélèvement」）。
-- 不含疫苗接种（属于另一门户）；不含逐年分段的化验数值明细（`ResultatsAnalyse`）。
-- 仅供整理**本人**健康记录之用；请合理使用（扩展默认带请求间隔），遵守网站使用条款。
+- Depends on the portal's private `/api/1` endpoints; a government redesign may require an update (endpoints are grouped at the top of `lib/pipeline.js`).
+- Vaccinations are on a different portal; per-year lab values (`ResultatsAnalyse`) are not included.
+- For organizing **your own** health records — please use responsibly (the default delay is there for a reason).
 
-## 开发
-
-```bash
-npm test     # node:test：单元 + 集成测试（模拟 /api/1 的完整流水线，当前 28 个）
-npm run icons  # 重新生成图标（Python 标准库）
-```
-
-目录结构：`lib/`（纯逻辑与编排，依赖注入、可脱离浏览器测试）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`。
-
-**测试说明**：端点行为用模拟服务器覆盖（命名、归档、base64 提取、去重、取消、重试、错误容忍均已验证）；真实门户需登录凭据，无法在开发环境端到端验证，首次使用建议先「仅扫描」。
+Developers: `npm test` — 30 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.

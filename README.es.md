@@ -32,17 +32,25 @@ Los informes ya descargados se **omiten automáticamente**: puede ejecutarlo per
 
 En una máquina nueva (este repositorio es privado — se necesita Git y su sesión de GitHub):
 
+macOS / Linux — Terminal:
 ```sh
 gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
-¿Ya clonado? Ejecute `bash tools/install.sh` desde el repositorio. El script actualiza el código, copia la ruta de la extensión al portapapeles y abre la página de extensiones del navegador.
+Windows — PowerShell:
+```powershell
+gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+cd $HOME\Code\CarnetSanteHelper
+powershell -ExecutionPolicy Bypass -File tools\install.ps1
+```
+
+¿Ya clonado? Desde el repositorio, ejecute `bash tools/install.sh` (macOS/Linux) o `powershell -ExecutionPolicy Bypass -File tools\install.ps1` (Windows). El script actualiza el código, copia la ruta de la extensión al portapapeles y abre la página de extensiones del navegador.
 
 **Opción B · sin Git — descargar un ZIP**
 
 1. En GitHub: botón verde **Code** → **Download ZIP** → descomprímalo (p. ej. `CarnetSanteHelper-main`).
-2. Copie la ruta completa de la **carpeta descomprimida** (no el archivo ZIP).
+2. Copie la ruta completa de la **carpeta descomprimida** (no el archivo ZIP). En Windows: Mayús+clic derecho en la carpeta → **Copiar como ruta de acceso**.
 
 **Después, en Chrome o Edge (el único paso manual — regla de seguridad del navegador para extensiones no publicadas):**
 

@@ -32,17 +32,25 @@ Downloads/
 
 新机器上（本仓库为私有，需要 Git 与你的 GitHub 登录）：
 
+macOS / Linux——终端：
 ```sh
 gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
-已克隆过？在仓库目录里直接 `bash tools/install.sh`。脚本会更新代码、把扩展路径复制到剪贴板、并打开浏览器的扩展管理页。
+Windows——PowerShell：
+```powershell
+gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+cd $HOME\Code\CarnetSanteHelper
+powershell -ExecutionPolicy Bypass -File tools\install.ps1
+```
+
+已克隆过？在仓库目录里直接 `bash tools/install.sh`（macOS/Linux）或 `powershell -ExecutionPolicy Bypass -File tools\install.ps1`（Windows）。脚本会更新代码、把扩展路径复制到剪贴板、并打开浏览器的扩展管理页。
 
 **方式 B · 不用 Git——下载 ZIP**
 
 1. 在 GitHub 上点绿色 **Code** → **Download ZIP** → 解压（如 `CarnetSanteHelper-main`）。
-2. 复制**解压后文件夹**的完整路径（不是 ZIP 文件本身）。
+2. 复制**解压后文件夹**的完整路径（不是 ZIP 文件本身）。Windows 小技巧：按住 Shift 右键文件夹 → **复制文件地址**。
 
 **接着在 Chrome 或 Edge 里（唯一的人工一步——未上架扩展必须如此，是浏览器安全规则）：**
 

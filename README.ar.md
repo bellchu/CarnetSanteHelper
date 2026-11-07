@@ -32,17 +32,25 @@ Downloads/
 
 على جهاز جديد (هذا المستودع خاص — يلزم Git وتسجيل دخولك إلى GitHub):
 
+macOS / Linux — الطرفية:
 ```sh
 gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
-سبق أن استنسخته؟ شغّل `bash tools/install.sh` من داخل المستودع. يقوم السكربت بتحديث الشيفرة ونسخ مسار الإضافة إلى الحافظة وفتح صفحة إضافات المتصفح.
+Windows — PowerShell:
+```powershell
+gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+cd $HOME\Code\CarnetSanteHelper
+powershell -ExecutionPolicy Bypass -File tools\install.ps1
+```
+
+سبق أن استنسخته؟ من داخل المستودع شغّل `bash tools/install.sh` (macOS/Linux) أو `powershell -ExecutionPolicy Bypass -File tools\install.ps1` (Windows). يقوم السكربت بتحديث الشيفرة ونسخ مسار الإضافة إلى الحافظة وفتح صفحة إضافات المتصفح.
 
 **الخيار ب · بدون Git — نزّل ملف ZIP**
 
 1. في GitHub: الزر الأخضر **Code** ← **Download ZIP** ← فكّ الضغط (مثل `CarnetSanteHelper-main`).
-2. انسخ المسار الكامل **للمجلد المفكوك** (وليس ملف ZIP نفسه).
+2. انسخ المسار الكامل **للمجلد المفكوك** (وليس ملف ZIP نفسه). في Windows: Shift + زر أيمن على المجلد ← **نسخ كمسار**.
 
 **بعد ذلك، في Chrome أو Edge (الخطوة اليدوية الوحيدة — قاعدة أمنية في المتصفح للإضافات غير المنشورة):**
 

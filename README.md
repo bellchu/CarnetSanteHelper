@@ -50,7 +50,7 @@ gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/
 2. 点击扩展图标，弹窗会显示当前登录者姓名。
 3. 勾选要下载的板块（化验 / 影像）、回溯年数（默认 6 年），点「开始下载」。
    - 可先勾选「仅扫描」做一次演练，确认能发现多少报告。
-4. 进度实时显示在弹窗里；结束后点「📁 下载文件夹」查看成果。**下载过程中请不要关闭该标签页。**
+4. 进度实时显示在弹窗里；结束后点弹窗顶部的文件夹图标（「打开文件夹」）查看成果。**下载过程中请不要关闭该标签页。**
 
 ### 设置（⚙）
 
@@ -63,7 +63,7 @@ gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/
 | 回溯年数 | 默认 6 年（影像接口单次查询跨度上限约 6 年，扩展会自动分段） |
 | 跳过已下载 | 去重开关；「清除已下载记录」可强制全量重下 |
 
-界面语言支持中文 / Français / English。
+界面语言支持 13 种：中文 / Français / English，以及魁北克移民常用语言——العربية（阿拉伯语，界面自动 RTL）、Español、Kreyòl ayisyen、Português、Italiano、Filipino、Tiếng Việt、Русский、Українська、ਪੰਜਾਬੀ；并自动跟随系统的深 / 浅色模式。
 
 ## 工作原理
 
@@ -91,7 +91,7 @@ gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/
 | 下载中途大量失败 / 401 | 令牌可能过期，扩展会自动取新令牌重试一次；仍失败就刷新门户页面后重跑（已下载的会自动跳过） |
 | 化验板块显示"功能未开放" | 该功能未对你开启（`PrelevementsAccessibles` 拒绝），扩展会跳过化验只处理影像 |
 | 部分报告失败 | 单份失败不会中断任务，结束后在弹窗错误区查看，可直接重跑补齐 |
-| 找不到下载的文件 | 弹窗点「📁 下载文件夹」；或在浏览器下载记录里查看（文件保存在下载目录的 `Carnet santé/` 子文件夹） |
+| 找不到下载的文件 | 弹窗点顶部「打开文件夹」图标；或在浏览器下载记录里查看（文件保存在下载目录的 `Carnet santé/` 子文件夹） |
 
 ## 已知限制
 
@@ -103,7 +103,7 @@ gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/
 ## 开发
 
 ```bash
-npm test     # node:test：15 个单元 + 集成测试（模拟 /api/1 的完整流水线）
+npm test     # node:test：单元 + 集成测试（模拟 /api/1 的完整流水线，当前 28 个）
 npm run icons  # 重新生成图标（Python 标准库）
 ```
 

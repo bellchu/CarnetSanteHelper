@@ -115,3 +115,24 @@ test('i18n t() 三语与变量替换', () => {
   assert.strictEqual(core.t('en', 'downloaded', { n: 3 }), 'Downloaded 3');
   assert.strictEqual(core.t('xx', 'appTitle'), core.t('zh', 'appTitle')); // 未知语言回退中文
 });
+
+test('i18n 全部语言键集合与 en 一致（新增语言不缺翻译）', () => {
+  const base = Object.keys(core.I18N.en).sort();
+  assert.ok(base.length >= 70);
+  assert.strictEqual(Object.keys(core.I18N).length, 13);   // zh/fr/en + 10 移民语言
+  for (const lang of Object.keys(core.I18N)) {
+    assert.deepStrictEqual(
+      Object.keys(core.I18N[lang]).sort(), base,
+      '语言 ' + lang + ' 的键集合与 en 不一致（缺翻译或多出键）');
+  }
+});
+
+test('i18n 新增语言样例与 RTL 判定', () => {
+  assert.strictEqual(core.t('ar', 'downloaded', { n: 3 }), 'تم تنزيل 3');
+  assert.strictEqual(core.t('tl', 'cancel'), 'Kanselahin');
+  assert.strictEqual(core.t('pa', 'found', { n: 5 }), '5 ਮਿਲੇ');
+  assert.strictEqual(core.t('ht', 'done'), 'Fini');
+  assert.strictEqual(core.isRtl('ar'), true);
+  assert.strictEqual(core.isRtl('fr'), false);
+  assert.strictEqual(core.isRtl('pa'), false);
+});

@@ -10,43 +10,63 @@
 <body>
   <h1 id="t-appTitle"></h1>
 
-  <div class="row"><span id="t-saveDir" class="lbl"></span>
-    <button id="pickFolder"></button>
-    <button id="clearFolder" hidden></button>
-    <span id="curFolder"></span>
-  </div>
-  <div class="hint" id="fsaHint"></div>
-
-  <label class="row"><span id="t-lang" class="lbl"></span>
+  <label class="row lang-row"><span id="t-lang" class="lbl"></span>
     <select id="lang">
       <option value="zh">中文</option>
       <option value="fr">Français</option>
       <option value="en">English</option>
+      <option value="ar">العربية</option>
+      <option value="es">Español</option>
+      <option value="ht">Kreyòl ayisyen</option>
+      <option value="pt">Português</option>
+      <option value="it">Italiano</option>
+      <option value="tl">Filipino</option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="ru">Русский</option>
+      <option value="uk">Українська</option>
+      <option value="pa">ਪੰਜਾਬੀ</option>
     </select>
   </label>
 
-  <label class="row"><span id="t-root" class="lbl"></span><input id="rootFolder" type="text" size="30"></label>
-  <label class="row"><span id="t-labsDir" class="lbl"></span><input id="labsFolder" type="text" size="30"></label>
-  <label class="row"><span id="t-imagingDir" class="lbl"></span><input id="imagingFolder" type="text" size="30"></label>
-  <div class="hint" id="locHint"></div>
-  <div class="hint"><span id="t-saveLocation"></span>:<br>
-    <code id="locPreviewLabs"></code><br>
-    <code id="locPreviewImg"></code>
-  </div>
+  <section class="card">
+    <h2 id="t-grpLocation"></h2>
+    <div class="row"><span id="t-saveDir" class="lbl"></span>
+      <span class="controls">
+        <button id="pickFolder"></button>
+        <button id="clearFolder" hidden></button>
+      </span>
+    </div>
+    <div class="row"><span class="lbl"></span><span id="curFolder" class="cur"></span></div>
+    <div class="hint" id="fsaHint"></div>
+  </section>
 
-  <div class="row"><span id="t-tpl" class="lbl"></span><input id="template" type="text" size="30"></div>
-  <div class="hint" id="tplHelp"></div>
-  <div class="hint"><span id="tplPreviewLabel">preview</span>: <code id="tplPreview"></code></div>
+  <section class="card">
+    <h2 id="t-grpNaming"></h2>
+    <label class="row"><span id="t-root" class="lbl"></span><input id="rootFolder" type="text"></label>
+    <label class="row"><span id="t-labsDir" class="lbl"></span><input id="labsFolder" type="text"></label>
+    <label class="row"><span id="t-imagingDir" class="lbl"></span><input id="imagingFolder" type="text"></label>
+    <div class="hint" id="locHint"></div>
+    <div class="hint"><span id="t-saveLocation"></span>:<br>
+      <code id="locPreviewLabs"></code><br>
+      <code id="locPreviewImg"></code>
+    </div>
+    <div class="row"><span id="t-tpl" class="lbl"></span><input id="template" type="text"></div>
+    <div class="hint" id="tplHelp"></div>
+    <div class="hint"><span id="tplPreviewLabel">preview</span>: <code id="tplPreview"></code></div>
+  </section>
 
-  <label class="row"><span id="t-delay" class="lbl"></span><input id="delayMs" type="number" min="0" max="10000" step="50"></label>
-  <label class="row"><span id="t-yearsBackLbl" class="lbl"></span><input id="yearsBack" type="number" min="1" max="30"></label>
-  <label class="chk"><input id="dedupe" type="checkbox"> <span id="t-onlyNew"></span></label>
-  <label class="chk"><input id="writeIndex" type="checkbox"> <span id="t-writeIndex"></span></label>
+  <section class="card">
+    <h2 id="t-grpBehavior"></h2>
+    <label class="row"><span id="t-delay" class="lbl"></span><input id="delayMs" type="number" min="0" max="10000" step="50"></label>
+    <label class="row"><span id="t-yearsBackLbl" class="lbl"></span><input id="yearsBack" type="number" min="1" max="30"></label>
+    <label class="chk"><input id="dedupe" type="checkbox"> <span id="t-onlyNew"></span></label>
+    <label class="chk"><input id="writeIndex" type="checkbox"> <span id="t-writeIndex"></span></label>
+  </section>
 
-  <div class="row">
+  <div class="actions">
     <button id="save" class="primary"></button>
     <button id="reset"></button>
-    <button id="clearDedup"></button>
+    <button id="clearDedup" class="danger"></button>
     <span id="savedFlag"></span>
   </div>
 

@@ -33,12 +33,27 @@ async function checkAlive(st) {
     if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
     st.running = false;
     st.summary = st.summary || { fatal: '任务中断（心跳超时）。请刷新门户页面后重跑；已下载的文件不受影响。' };
-    await saveState();
+    await saveNow();
   }
 }
 
 async function saveState() {
   try { await chrome.storage.local.set({ [STATE_KEY]: state }); } catch (e) { /* 忽略 */ }
+}
+
+// 进度类消息高频到达（每份报告 3 条以上），整份 state 落盘有写放大：
+// 内存即时更新供 getState 读取，落盘按 500ms 合并；状态跃迁（begin/done/cancel…）用 saveNow 立即写。
+let saveTimer = null;
+function scheduleSave() {
+  if (saveTimer != null) return;
+  saveTimer = setTimeout(function () {
+    saveTimer = null;
+    saveState();
+  }, 500);
+}
+async function saveNow() {
+  if (saveTimer != null) { clearTimeout(saveTimer); saveTimer = null; }
+  await saveState();
 }
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
@@ -61,7 +76,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
               const parsed = CSHCore.parseDataUrl(msg.dataUrl);
               await CSHFsa.writeFile(h, filename, new Blob([parsed.bytes], { type: parsed.mime }));
               st.lastDownloadId = null;   // 所选文件夹模式下不再指向下载目录的旧文件
-              await saveState();
+              await saveNow();
               sendResponse({ ok: true, fsa: true, filename: filename });
               return;
             }
@@ -81,7 +96,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
           });
         }
         if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
-        await saveState();
+        await saveNow();
         // 回退：chrome.downloads（保存到默认下载目录的子文件夹）
         try {
           const id = await chrome.downloads.download({
@@ -97,12 +112,12 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
               msg: '保存对话框被取消。若每份文件都弹出询问，请在浏览器设置中关闭「下载前询问每个文件的保存位置」后重跑。',
             });
             if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
-            await saveState();
+            await saveNow();
             sendResponse({ ok: false, error: '保存对话框被取消（若每份文件都弹窗，请关闭浏览器设置的「下载前询问每个文件的保存位置」）' });
             return;
           }
           st.lastDownloadId = id;
-          await saveState();
+          await saveNow();
           sendResponse({ ok: true, id: id });
         } catch (e) {
           sendResponse({ ok: false, error: String((e && e.message) || e) });
@@ -139,17 +154,17 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
         } else if (msg.stage === 'itemwait') {
           st.current = msg.payload;
         }
-        await saveState();
+        scheduleSave();
         return;
       case 'log':
         st.log.push({ ts: Date.now(), level: msg.level, msg: msg.msg });
         if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
-        await saveState();
+        scheduleSave();
         return;
       case 'done':
         st.running = false;
         st.summary = msg.summary || {};
-        await saveState();
+        await saveNow();
         return;
       case 'begin': {
         if (st.running) { sendResponse({ ok: false, error: 'busy' }); return; }
@@ -162,13 +177,13 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
         st.startedTs = Date.now();
         st.progress = { stage: 'start', ts: Date.now() };
         st.tabId = msg.tabId;
-        await saveState();
+        await saveNow();
         try {
           await chrome.tabs.sendMessage(msg.tabId, { type: 'runSweep', job: msg.job });
           sendResponse({ ok: true });
         } catch (e) {
           st.running = false;
-          await saveState();
+          await saveNow();
           sendResponse({ ok: false, error: String((e && e.message) || e) });
         }
         return;
@@ -185,7 +200,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
         if (!delivered || !st.running) {
           st.running = false;
           st.summary = st.summary || { fatal: '已强制复位。上次任务状态丢失；已下载的文件不受影响。' };
-          await saveState();
+          await saveNow();
         }
         return;
       }
@@ -194,19 +209,19 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
           running: st.running,
           progress: st.progress,
           summary: st.summary,
-          log: st.log.slice(-50),
           fallbackCount: st.fallbackCount || 0,
           items: (st.items || []).slice(-100),
           stats: st.stats || { imaging: null, labs: null },
           current: st.current,
           startedTs: st.startedTs,
+          tabId: st.tabId,   // 弹窗重开时恢复承载标签页
         });
         return;
       case 'reset':
         st.running = false;
         st.summary = null;
         st.progress = null;
-        await saveState();
+        await saveNow();
         sendResponse({ ok: true });
         return;
     }

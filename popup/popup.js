@@ -8,6 +8,8 @@
   let pollTimer = null;
   let lang = 'zh';
   let savedOptions = {};   // options 页保存的设置，启动任务时随 job 下发
+  let liveSig = '';        // 上次渲染的统计/当前项签名：未变化则跳过 DOM 更新
+  let itemsSig = '';       // 上次渲染的日志列表签名
   const T = function (key, vars) { return core.t(lang, key, vars); };
 
   function renderStatic() {
@@ -16,15 +18,23 @@
       't-yearsBack': 'yearsBack', 't-onlyNew': 'onlyNew', 't-dryRun': 'dryRun',
     };
     for (const id of Object.keys(map)) $(id).textContent = T(map[id]);
-    $('start').textContent = T('start');
+    document.documentElement.dir = core.isRtl(lang) ? 'rtl' : 'ltr';   // 阿拉伯语等 RTL 语言
+    updateStartLabel();
     $('cancel').textContent = T('cancel');
-    $('openFolder').textContent = '📁 ' + T('openFolder');
+    $('openSettings').title = T('settings');
+    $('openFolder').title = T('openFolder');
     $('privacyLine').textContent = T('privacy');
   }
 
-  function setStatus(text, isErr) {
+  // 勾选「仅扫描」时按钮文案随之切换
+  function updateStartLabel() {
+    $('start').textContent = T($('dryRun').checked ? 'scan' : 'start');
+  }
+
+  // kind: 'ok' | 'err' | 'busy'；busy 时状态点闪烁表示检测中
+  function setStatus(text, kind) {
     $('statusLine').textContent = text;
-    $('statusLine').style.color = isErr ? '#b91c1c' : '#1f2937';
+    $('statusDot').className = 'dot' + (kind ? ' ' + kind : '');
   }
 
   async function ensureContent(tabId) {
@@ -39,19 +49,9 @@
     }
   }
 
-  async function init() {
-    const st = (await chrome.storage.sync.get('options')).options || {};
-    savedOptions = Object.assign({}, core.DEFAULTS, st);
-    const opts = savedOptions;
-    lang = opts.lang || 'zh';
-    renderStatic();
-
-    const tabs = await chrome.tabs.query({
-      url: ['https://www.carnetsante.gouv.qc.ca/*', 'https://carnetsante.gouv.qc.ca/*'],
-    });
-    if (!tabs.length) { setStatus(T('tabMissing'), true); return; }
-    tab = tabs.find(function (t) { return t.active; }) || tabs[0];
-
+  // 登录探测较慢（需请求 API）：控件先展示，探测结果异步更新状态行
+  async function probeStatus() {
+    setStatus(T('checking'), 'busy');
     await ensureContent(tab.id);
     let probe = null;
     try {
@@ -59,18 +59,16 @@
     } catch (e) { /* ignore */ }
 
     if (!probe || !probe.hasToken) {
-      setStatus(T('notLoggedIn'), true);
+      setStatus(T('notLoggedIn'), 'err');
     } else if (probe.profile && probe.profile.name) {
-      setStatus(T('loggedInAs', { name: probe.profile.name }));
+      setStatus(T('loggedInAs', { name: probe.profile.name }), 'ok');
     } else {
-      setStatus(T('status') + ': OK');
+      setStatus(T('status') + ': OK', 'ok');
     }
+  }
 
-    $('controls').hidden = false;
-    $('yearsBack').value = opts.yearsBack;
-    $('onlyNew').checked = opts.dedupe;
-
-    // 保存目标：自选文件夹（File System Access）或浏览器下载目录
+  // 目标文件夹行 + 打开按钮的行为均随保存模式而定
+  async function renderTarget() {
     let fsa = null;
     try { fsa = await chrome.runtime.sendMessage({ type: 'fsaStatus' }); } catch (e) { /* 忽略 */ }
     if (fsa && fsa.mode === 'fsa') {
@@ -82,11 +80,50 @@
       $('targetLine').style.cursor = 'pointer';
       $('targetLine').onclick = function () { chrome.runtime.openOptionsPage(); };
     } else {
-      $('targetLine').textContent = T('targetFolder') + ': ' + T('dlDir') + '/' + opts.rootFolder;
+      $('targetLine').textContent = T('targetFolder') + ': ' + T('dlDir') + '/' + savedOptions.rootFolder;
     }
+  }
+
+  async function init() {
+    const st = (await chrome.storage.sync.get('options')).options || {};
+    savedOptions = Object.assign({}, core.DEFAULTS, st);
+    const opts = savedOptions;
+    lang = opts.lang || 'zh';
+    renderStatic();
+
+    const tabs = await chrome.tabs.query({
+      url: ['https://www.carnetsante.gouv.qc.ca/*', 'https://carnetsante.gouv.qc.ca/*'],
+    });
+    tab = tabs.find(function (t) { return t.active; }) || tabs[0] || null;
 
     const swState = await chrome.runtime.sendMessage({ type: 'getState' });
-    if (swState && swState.running) { enterRunningUI(); startPolling(); }
+    if (swState && swState.running) {
+      // 弹窗在任务运行中重新打开：恢复承载标签页并直接进入运行界面
+      if (!tab && swState.tabId != null) {
+        try { tab = await chrome.tabs.get(swState.tabId); } catch (e) { /* 页面已关 */ }
+      }
+      enterRunningUI();
+      startPolling();
+      if (tab) probeStatus(); else setStatus(T('running'), 'busy');
+      return;
+    }
+
+    if (!tab) {
+      setStatus(T('tabMissing'), 'err');
+      const btn = $('openPortal');
+      btn.hidden = false;
+      btn.textContent = T('openPortal');
+      return;
+    }
+
+    $('controls').hidden = false;
+    $('yearsBack').value = opts.yearsBack;
+    $('onlyNew').checked = opts.dedupe;
+    renderTarget();
+
+    probeStatus();
+    // 上次运行的结果仍在：直接展示，弹窗重开后不丢汇总
+    if (swState && swState.summary) renderSummary(swState.summary, swState.fallbackCount || 0);
   }
 
   function collectJob() {
@@ -107,7 +144,7 @@
     const res = await chrome.runtime.sendMessage({ type: 'begin', tabId: tab.id, job: collectJob() });
     if (!res || res.ok === false) {
       $('start').disabled = false;
-      setStatus(res && res.error === 'busy' ? T('busy') : String((res && res.error) || 'failed'), true);
+      setStatus(res && res.error === 'busy' ? T('busy') : String((res && res.error) || 'failed'), 'err');
       return;
     }
     enterRunningUI();
@@ -117,14 +154,22 @@
   function enterRunningUI() {
     $('start').disabled = true;
     $('cancel').hidden = false;
+    $('cancel').disabled = false;
+    $('cancel').textContent = T('cancel');
+    $('controls').hidden = true;   // 运行中收起参数区，聚焦进度
     $('progressBox').hidden = false;
     $('summaryBox').hidden = true;
     $('fileList').innerHTML = '';
+    liveSig = '';
+    itemsSig = '';
   }
 
   function exitRunningUI() {
     $('start').disabled = false;
     $('cancel').hidden = true;
+    $('cancel').disabled = false;
+    $('cancel').textContent = T('cancel');
+    $('controls').hidden = false;
     stopPolling();
   }
 
@@ -169,31 +214,40 @@
     return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
   }
 
-  // 详细状态面板：进度条 / 分板块计数 / 当前项 / 用时与预计 / 逐条活动日志
+  // 详细状态面板：进度条 / 分板块计数 / 当前项 / 用时与预计 / 逐条活动日志。
+  // 统计与列表按签名去重，700ms 轮询中大部分周期只更新用时一行，避免整片 DOM 重建。
   function renderLive(s) {
     const img = s.stats && s.stats.imaging;
     const la = s.stats && s.stats.labs;
+    const sig = JSON.stringify([img, la, s.current]);
+    if (sig !== liveSig) {
+      liveSig = sig;
+      const found = (img ? img.found : 0) + (la ? la.found : 0);
+      const done = (img ? img.downloaded + img.skipped + img.failed : 0) +
+        (la ? la.downloaded + la.skipped + la.failed : 0);
+      const pct = found ? Math.min(100, Math.round(done * 100 / found)) : 0;
+      $('barFill').style.width = pct + '%';
+      $('pct').textContent = found ? (pct + '% · ' + done + '/' + found) : '';
+
+      const row = function (st, name) {
+        if (!st) return '';
+        return '<div class="stat"><b>' + name + '</b> — ' + T('downloaded', { n: st.downloaded }) +
+          ' · ' + T('skipped', { n: st.skipped }) + ' · ' + T('failed', { n: st.failed }) +
+          ' / ' + T('found', { n: st.found }) + '</div>';
+      };
+      $('secStats').innerHTML = row(img, T('imaging')) + row(la, T('labs'));
+
+      if (s.current) {
+        $('curLine').textContent = T('current') + ': ' +
+          (s.current.section === 'labs' ? T('labs') : T('imaging')) + ' — ' +
+          T('processing', { i: s.current.i, n: s.current.n }) +
+          (s.current.label ? ' · ' + s.current.label : '');
+      }
+    }
+
     const found = (img ? img.found : 0) + (la ? la.found : 0);
     const done = (img ? img.downloaded + img.skipped + img.failed : 0) +
       (la ? la.downloaded + la.skipped + la.failed : 0);
-    const pct = found ? Math.min(100, Math.round(done * 100 / found)) : 0;
-    $('barFill').style.width = pct + '%';
-    $('pct').textContent = found ? (pct + '% · ' + done + '/' + found) : '';
-
-    const row = function (st, name) {
-      if (!st) return '';
-      return '<div class="stat"><b>' + name + '</b> — ' + T('downloaded', { n: st.downloaded }) +
-        ' · ' + T('skipped', { n: st.skipped }) + ' · ' + T('failed', { n: st.failed }) +
-        ' / ' + T('found', { n: st.found }) + '</div>';
-    };
-    $('secStats').innerHTML = row(img, T('imaging')) + row(la, T('labs'));
-
-    if (s.current) {
-      $('curLine').textContent = T('current') + ': ' +
-        (s.current.section === 'labs' ? T('labs') : T('imaging')) + ' — ' +
-        T('processing', { i: s.current.i, n: s.current.n }) +
-        (s.current.label ? ' · ' + s.current.label : '');
-    }
     if (s.startedTs) {
       const el = Date.now() - s.startedTs;
       let meta = T('elapsed') + ' ' + fmtDur(el);
@@ -201,14 +255,22 @@
       $('metaLine').textContent = meta;
     }
 
-    $('fileList').innerHTML = (s.items || []).slice(-80).map(function (it) {
-      const icon = it.status === 'ok' ? '✓' : (it.status === 'skip' ? '↷' : '✗');
-      const name = it.name ? String(it.name).split('/').pop() : '';
-      const ntag = (it.status === 'skip' && it.n > 1) ? ' ×' + it.n : '';
-      const extra = (it.status === 'fail' && it.error) ? ' — ' + escapeHtml(it.error) : '';
-      return '<li class="' + it.status + '">' + icon + ' ' + escapeHtml(name) + ntag + extra + '</li>';
-    }).join('');
-    $('fileList').scrollTop = $('fileList').scrollHeight;
+    const items = s.items || [];
+    const isig = items.length + ':' + (items.length ? items[items.length - 1].ts : 0);
+    if (isig !== itemsSig) {
+      const fl = $('fileList');
+      // 用户正向上翻看时不抢滚动位置，仅在贴近底部时跟随新条目
+      const nearBottom = fl.scrollHeight - fl.scrollTop - fl.clientHeight < 30;
+      itemsSig = isig;
+      fl.innerHTML = items.slice(-80).map(function (it) {
+        const icon = it.status === 'ok' ? '✓' : (it.status === 'skip' ? '↷' : '✗');
+        const name = it.name ? String(it.name).split('/').pop() : '';
+        const ntag = (it.status === 'skip' && it.n > 1) ? ' ×' + it.n : '';
+        const extra = (it.status === 'fail' && it.error) ? ' — ' + escapeHtml(it.error) : '';
+        return '<li class="' + it.status + '">' + icon + ' ' + escapeHtml(name) + ntag + extra + '</li>';
+      }).join('');
+      if (nearBottom) fl.scrollTop = fl.scrollHeight;
+    }
   }
 
   function renderSummary(sum, fallbackCount) {
@@ -245,8 +307,18 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     $('start').addEventListener('click', start);
-    $('cancel').addEventListener('click', function () { chrome.runtime.sendMessage({ type: 'cancel' }); });
+    $('dryRun').addEventListener('change', updateStartLabel);
+    $('cancel').addEventListener('click', function () {
+      // 立即反馈：按钮进入「取消中」禁用态，等 pipeline 实际停止后由 exitRunningUI 复原
+      this.disabled = true;
+      this.textContent = T('cancelling');
+      chrome.runtime.sendMessage({ type: 'cancel' });
+    });
     $('openSettings').addEventListener('click', function () { chrome.runtime.openOptionsPage(); });
+    $('openPortal').addEventListener('click', function () {
+      chrome.tabs.create({ url: 'https://www.carnetsante.gouv.qc.ca/' });
+      window.close();
+    });
     $('openFolder').addEventListener('click', async function () {
       // 按保存目标分流：所选文件夹 → 内容视图页；需授权 → 设置页；否则 → 下载目录
       let fsa = null;

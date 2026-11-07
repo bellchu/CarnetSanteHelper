@@ -6,14 +6,37 @@
   <script src="../lib/core.js"></script>
   <script src="../lib/fsa.js"></script>
   <style>
-    body { font: 14px/1.6 system-ui, -apple-system, sans-serif; color: #1f2937; max-width: 640px; margin: 24px auto; padding: 0 16px; }
-    h1 { color: #0f766e; font-size: 18px; }
-    #status { color: #374151; margin-bottom: 12px; }
+    :root {
+      color-scheme: light dark;
+      --bg: #f3f4f6;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #0f766e;
+      --on-accent: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111827;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --border: #374151;
+        --accent: #14b8a6;
+        --on-accent: #06211d;
+      }
+    }
+    body { font: 14px/1.6 system-ui, -apple-system, sans-serif; color: var(--text); background: var(--bg); max-width: 640px; margin: 24px auto; padding: 0 16px 32px; }
+    h1 { color: var(--accent); font-size: 18px; margin: 0 0 8px; }
+    #status { color: var(--muted); margin-bottom: 12px; }
+    #status.busy { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .45; } }
     ul { list-style: none; padding-left: 8px; }
     ul ul { padding-left: 22px; }
     li { margin: 2px 0; word-break: break-all; }
-    button { border: 1px solid #d1d5db; background: #fff; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
-    .hint { color: #6b7280; font-size: 12px; margin-top: 16px; }
+    button { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    button#reauth { background: var(--accent); color: var(--on-accent); border-color: var(--accent); margin-bottom: 12px; }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 16px; }
   </style>
 </head>
 <body>

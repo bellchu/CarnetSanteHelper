@@ -14,9 +14,11 @@
       't-appTitle': 'appTitle', 't-lang': 'lang', 't-root': 'root', 't-labsDir': 'labsDir',
       't-imagingDir': 'imagingDir', 't-tpl': 'tpl', 't-delay': 'delay', 't-onlyNew': 'onlyNew',
       't-writeIndex': 'writeIndex', 't-yearsBackLbl': 'yearsBack', 't-saveLocation': 'saveLocation',
-      't-saveDir': 'saveDir',
+      't-saveDir': 'saveDir', 't-grpLocation': 'grpLocation', 't-grpNaming': 'grpNaming',
+      't-grpBehavior': 'grpBehavior',
     };
     for (const id of Object.keys(map)) $(id).textContent = T(map[id]);
+    document.documentElement.dir = core.isRtl(lang) ? 'rtl' : 'ltr';   // 阿拉伯语等 RTL 语言
     $('tplHelp').textContent = T('tplHelp');
     $('save').textContent = T('save');
     $('reset').textContent = T('reset');

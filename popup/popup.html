@@ -10,11 +10,18 @@
   <header>
     <b id="t-appTitle"></b>
     <span class="spacer"></span>
-    <button id="openFolder" class="link" title="downloads folder"></button>
-    <button id="openSettings" class="link" title="settings">⚙</button>
+    <button id="openFolder" class="icon-btn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <button id="openSettings" class="icon-btn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </header>
 
-  <section id="statusBox"><div id="statusLine">…</div></section>
+  <section id="statusBox">
+    <div class="status-row"><span id="statusDot" class="dot busy"></span><div id="statusLine">…</div></div>
+    <button id="openPortal" class="link" hidden></button>
+  </section>
 
   <section id="controls" hidden>
     <div class="group-title" id="t-sections"></div>
@@ -22,14 +29,13 @@
     <label class="chk"><input type="checkbox" id="imaging" checked> <span id="t-imaging"></span></label>
     <div class="row">
       <span id="t-yearsBack"></span>
-      <input type="number" id="yearsBack" min="1" max="30" style="width:4.5em">
+      <input type="number" id="yearsBack" min="1" max="30">
     </div>
     <label class="chk"><input type="checkbox" id="onlyNew" checked> <span id="t-onlyNew"></span></label>
     <label class="chk"><input type="checkbox" id="dryRun"> <span id="t-dryRun"></span></label>
     <div class="row" id="targetLine"></div>
-    <div class="row">
+    <div class="actions">
       <button id="start" class="primary"></button>
-      <button id="cancel" hidden></button>
     </div>
   </section>
 
@@ -40,6 +46,9 @@
     <div id="curLine"></div>
     <div id="metaLine"></div>
     <ul id="fileList"></ul>
+    <div class="actions">
+      <button id="cancel" hidden></button>
+    </div>
   </section>
 
   <section id="summaryBox" hidden></section>

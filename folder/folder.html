@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Carnet santé Helper</title>
+  <script src="../lib/core.js"></script>
+  <script src="../lib/fsa.js"></script>
+  <style>
+    body { font: 14px/1.6 system-ui, -apple-system, sans-serif; color: #1f2937; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+    h1 { color: #0f766e; font-size: 18px; }
+    #status { color: #374151; margin-bottom: 12px; }
+    ul { list-style: none; padding-left: 8px; }
+    ul ul { padding-left: 22px; }
+    li { margin: 2px 0; word-break: break-all; }
+    button { border: 1px solid #d1d5db; background: #fff; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+    .hint { color: #6b7280; font-size: 12px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1 id="t-title"></h1>
+  <div id="status"></div>
+  <button id="reauth" hidden></button>
+  <ul id="tree"></ul>
+  <div class="hint" id="finderHint"></div>
+  <script src="folder.js"></script>
+</body>
+</html>

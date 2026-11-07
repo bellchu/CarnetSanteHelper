@@ -5,9 +5,17 @@
   <title>Carnet santé Helper</title>
   <link rel="stylesheet" href="options.css">
   <script src="../lib/core.js"></script>
+  <script src="../lib/fsa.js"></script>
 </head>
 <body>
   <h1 id="t-appTitle"></h1>
+
+  <div class="row"><span id="t-saveDir" class="lbl"></span>
+    <button id="pickFolder"></button>
+    <button id="clearFolder" hidden></button>
+    <span id="curFolder"></span>
+  </div>
+  <div class="hint" id="fsaHint"></div>
 
   <label class="row"><span id="t-lang" class="lbl"></span>
     <select id="lang">
@@ -20,6 +28,11 @@
   <label class="row"><span id="t-root" class="lbl"></span><input id="rootFolder" type="text" size="30"></label>
   <label class="row"><span id="t-labsDir" class="lbl"></span><input id="labsFolder" type="text" size="30"></label>
   <label class="row"><span id="t-imagingDir" class="lbl"></span><input id="imagingFolder" type="text" size="30"></label>
+  <div class="hint" id="locHint"></div>
+  <div class="hint"><span id="t-saveLocation"></span>:<br>
+    <code id="locPreviewLabs"></code><br>
+    <code id="locPreviewImg"></code>
+  </div>
 
   <div class="row"><span id="t-tpl" class="lbl"></span><input id="template" type="text" size="30"></div>
   <div class="hint" id="tplHelp"></div>

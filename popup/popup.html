@@ -26,6 +26,7 @@
     </div>
     <label class="chk"><input type="checkbox" id="onlyNew" checked> <span id="t-onlyNew"></span></label>
     <label class="chk"><input type="checkbox" id="dryRun"> <span id="t-dryRun"></span></label>
+    <div class="row" id="targetLine"></div>
     <div class="row">
       <button id="start" class="primary"></button>
       <button id="cancel" hidden></button>
@@ -34,6 +35,10 @@
 
   <section id="progressBox" hidden>
     <div id="progressLine"></div>
+    <div class="barwrap"><div class="bar"><i id="barFill"></i></div><span id="pct"></span></div>
+    <div id="secStats"></div>
+    <div id="curLine"></div>
+    <div id="metaLine"></div>
     <ul id="fileList"></ul>
   </section>
 

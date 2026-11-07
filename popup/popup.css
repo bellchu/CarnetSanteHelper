@@ -41,14 +41,28 @@ button.primary:hover { background: #115e59; }
 button.primary:disabled { background: #9ca3af; cursor: default; }
 #progressBox { border-top: 1px solid #e5e7eb; }
 #progressLine { font-weight: 600; }
+.barwrap { display: flex; align-items: center; gap: 8px; margin: 5px 0 3px; }
+.bar { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: #0f766e; width: 0; transition: width .3s; }
+#pct { font-size: 11px; color: #6b7280; white-space: nowrap; }
+#secStats { font-size: 12px; color: #374151; }
+#secStats .stat { margin: 1px 0; }
+#secStats b { font-weight: 600; }
+#curLine { font-size: 12px; color: #1f2937; margin-top: 3px; }
+#metaLine { font-size: 11px; color: #6b7280; margin: 1px 0 4px; }
 #fileList {
   margin: 4px 0 0;
-  padding-left: 18px;
-  max-height: 140px;
+  padding-left: 4px;
+  list-style: none;
+  max-height: 150px;
   overflow-y: auto;
   word-break: break-all;
+  font-size: 12px;
 }
-#fileList li { margin: 1px 0; color: #374151; }
+#fileList li { margin: 1px 0; }
+#fileList li.ok { color: #047857; }
+#fileList li.skip { color: #6b7280; }
+#fileList li.fail { color: #b91c1c; }
 #summaryBox { border-top: 1px solid #e5e7eb; }
 .stat { display: inline-block; margin-right: 10px; }
 .err { color: #b91c1c; word-break: break-all; max-height: 100px; overflow-y: auto; }

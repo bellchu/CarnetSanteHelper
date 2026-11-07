@@ -194,9 +194,13 @@ test('完整流水线：下载两类 PDF、命名归档正确、带 Bearer 头',
   assert.ok(Array.from(storeMap.keys()).some(k => k.startsWith('dedup:C123:imaging:')));
   assert.ok(Array.from(storeMap.keys()).some(k => k.startsWith('dedup:C123:labs:')));
 
-  // 进度流完整
+  // 进度流完整（含每个报告后的实时统计）
   const stages = meta.progresses.map(p => p.stage);
   assert.ok(stages.includes('start') && stages.includes('item') && stages.includes('done'));
+  const statEvents = meta.progresses.filter(p => p.stage === 'stats');
+  assert.ok(statEvents.length >= 2);
+  const labStats = statEvents.filter(p => p.payload.section === 'labs').pop().payload;
+  assert.strictEqual(labStats.failed, 1);   // lab-broken 计入实时失败数
 
   // 限速生效
   assert.ok(meta.delays.length >= 2 && meta.delays.every(d => d === core.DEFAULTS.delayMs));
@@ -272,6 +276,217 @@ test('仅扫描（dry-run）：预览文件列表，但不写索引、不污染�
   const summary = await pipeline.runSweep(baseJob(), makeEnv(srv2.fetchImpl, downloads, storeMap, {}));
   assert.strictEqual(summary.stats.imaging.downloaded, 1);
   assert.strictEqual(summary.stats.labs.downloaded, 1);
+});
+
+test('apiBase：优先页面 origin，同源成功后锁定基址', async () => {
+  const routes = [
+    {
+      match: (u) => u.endsWith('/api/1/Citoyens'),
+      reply: (u) => (u.startsWith('https://carnetsante.gouv.qc.ca')
+        ? resJson({ IdCitoyen: 'C123' })
+        : resJson({}, 403)),
+    },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([]) },
+  ];
+  const srv = makeFetch(routes);
+  const summary = await pipeline.runSweep(
+    baseJob({ apiBase: 'https://carnetsante.gouv.qc.ca', sections: { labs: false, imaging: true } }),
+    makeEnv(srv.fetchImpl, [], new Map(), {})
+  );
+  assert.strictEqual(summary.citizen.id, 'C123');
+  assert.ok(srv.calls.every((c) => c.url.startsWith('https://carnetsante.gouv.qc.ca')), '后续请求应锁定同源基址');
+});
+
+test('apiBase：同源 403 时自动回退 www 域', async () => {
+  const routes = [
+    {
+      match: (u) => u.endsWith('/api/1/Citoyens'),
+      reply: (u) => (u.startsWith('https://www.carnetsante.gouv.qc.ca')
+        ? resJson({ IdCitoyen: 'C123' })
+        : resJson({}, 403)),
+    },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([]) },
+  ];
+  const srv = makeFetch(routes);
+  const summary = await pipeline.runSweep(
+    baseJob({ apiBase: 'https://carnetsante.gouv.qc.ca', sections: { labs: false, imaging: true } }),
+    makeEnv(srv.fetchImpl, [], new Map(), {})
+  );
+  assert.strictEqual(summary.citizen.id, 'C123');
+  assert.ok(srv.calls.some((c) => c.url.startsWith('https://carnetsante.gouv.qc.ca/api/1/Citoyens')), '先尝试同源基址');
+  const postBootstrap = srv.calls.filter((c) => !c.url.endsWith('/api/1/Citoyens'));
+  assert.ok(postBootstrap.every((c) => c.url.startsWith('https://www.carnetsante.gouv.qc.ca')), '回退后其余请求全部走 www 基址');
+});
+
+test('dry-run 不拉取影像 PDF 本体', async () => {
+  // 移除会返回 PDF 的路由，换成抛错版本：dry run 若请求 PDF 即失败
+  const isPdfRoute = function (r) {
+    return r.match('https://x/a/DetailRapport/1/Rapport');
+  };
+  const routes = defaultRoutes.filter(function (r) { return !isPdfRoute(r); }).concat([{
+    match: (u) => u.includes('/DetailRapport/') && u.endsWith('/Rapport'),
+    reply: () => { throw new Error('dry run 不应请求 PDF'); },
+  }]);
+  const srv = makeFetch(routes);
+  const summary = await pipeline.runSweep(
+    baseJob({ dryRun: true }),
+    Object.assign(makeEnv(srv.fetchImpl, [], new Map(), {}), {
+      downloadFn: async () => ({ ok: true, dryRun: true }),
+    })
+  );
+  assert.strictEqual(summary.stats.imaging.downloaded, 1);   // 扫描仍完整计数
+  assert.strictEqual(summary.stats.labs.downloaded, 1);      // 化验 PDF 内嵌于 Rapports JSON，必须获取
+});
+
+test('ExamensImagerie 500：换格式仍失败则二分到单年后成功', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    {
+      // 跨年区间一律 500（模拟服务端跨度上限），单年正常返回
+      match: (u) => u.includes('/ExamensImagerie?'),
+      reply: (u) => {
+        const m = /DateDebut=(\d{4})-\d+-\d+&DateFin=(\d{4})-\d+-\d+/.exec(u);
+        if (!m) return resJson({}, 400);
+        return (+m[1] === +m[2]) ? resJson([EXAM]) : resJson({}, 500);
+      },
+    },
+    {
+      match: (u) => u.includes('/ExamenImagerie/') && u.endsWith('/DetailRapport'),
+      reply: () => resJson([{ IdRapport: 'R1', DateRapport: `${Y}-05-15T00:00:00`, Statut: 'Disponible' }]),
+    },
+    {
+      match: (u) => u.includes('/DetailRapport/') && u.endsWith('/Rapport'),
+      reply: () => resBin(IMAGING_PDF),
+    },
+  ];
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: true }, startYear: Y - 2 }),
+    makeEnv(makeFetch(routes).fetchImpl, downloads, new Map(), {})
+  );
+  assert.strictEqual(summary.stats.imaging.downloaded, 1);
+  assert.strictEqual(summary.errors.length, 0);
+});
+
+test('日期格式回退：非补零 500 时改补零即成功（无需二分）', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    {
+      // 非补零（月/日为一位数，如 2024-1-1）→ 500；补零 → 正常
+      match: (u) => u.includes('/ExamensImagerie?'),
+      reply: (u) => (/DateDebut=\d{4}-\d{1}-\d{1}&/.test(u) ? resJson({}, 500) : resJson([EXAM])),
+    },
+    {
+      match: (u) => u.includes('/ExamenImagerie/') && u.endsWith('/DetailRapport'),
+      reply: () => resJson([{ IdRapport: 'R1', DateRapport: `${Y}-05-15T00:00:00` }]),
+    },
+    {
+      match: (u) => u.includes('/DetailRapport/') && u.endsWith('/Rapport'),
+      reply: () => resBin(IMAGING_PDF),
+    },
+  ];
+  const srv = makeFetch(routes);
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: true }, startYear: Y - 1 }),
+    makeEnv(srv.fetchImpl, downloads, new Map(), {})
+  );
+  assert.strictEqual(summary.stats.imaging.downloaded, 1);
+  const listCalls = srv.calls.filter((c) => c.url.includes('/ExamensImagerie?'));
+  assert.strictEqual(listCalls.length, 2);   // 一次非补零失败 + 一次补零成功
+});
+
+test('单年仍 500：记录错误并继续其余板块', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson({}, 500) },
+  ].concat(defaultRoutes.filter(function (r) {
+    return !r.match('https://x/ExamensImagerie?DateDebut=1&DateFin=2');
+  }));
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob(),
+    makeEnv(makeFetch(routes).fetchImpl, downloads, new Map(), {})
+  );
+  assert.strictEqual(summary.stats.imaging.downloaded, 0);
+  assert.ok(summary.errors.some(function (e) { return e.section === 'imaging'; }));
+  assert.strictEqual(summary.stats.labs.downloaded, 1);   // 化验不受影响
+});
+
+test('labs 整条快速跳过：已完成条目不再请求 Rapports（零网络）', async () => {
+  const storeMap = new Map();
+  storeMap.set('dedup:C123:labsItem:lab-001', '1');   // 预置：lab-001 上次已完整下载
+  const srv = makeFetch(defaultRoutes);
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: true, imaging: false } }),
+    makeEnv(srv.fetchImpl, [], storeMap, {})
+  );
+  assert.ok(!srv.calls.some((c) => c.url.includes('/Prelevements/lab-001/Rapports')), '已完成条目不应再拉取');
+  assert.strictEqual(summary.stats.labs.skipped, 1);
+  assert.ok(srv.calls.some((c) => c.url.includes('/Prelevements/lab-broken/Rapports')), '失败条目仍会重试');
+  assert.strictEqual(summary.stats.labs.failed, 1);
+});
+
+test('labs 全部成功后写整条标记，二次运行该条零请求', async () => {
+  const storeMap = new Map();
+  const srv1 = makeFetch(defaultRoutes);
+  await pipeline.runSweep(
+    baseJob({ sections: { labs: true, imaging: false } }),
+    makeEnv(srv1.fetchImpl, [], storeMap, {})
+  );
+  assert.ok(storeMap.has('dedup:C123:labsItem:lab-001'), '成功后写入整条标记');
+  assert.ok(!storeMap.has('dedup:C123:labsItem:lab-broken'), '失败条目不写标记');
+
+  const srv2 = makeFetch(defaultRoutes);
+  const s2 = await pipeline.runSweep(
+    baseJob({ sections: { labs: true, imaging: false } }),
+    makeEnv(srv2.fetchImpl, [], storeMap, {})
+  );
+  assert.ok(!srv2.calls.some((c) => c.url.includes('/Prelevements/lab-001/Rapports')));
+  assert.strictEqual(s2.stats.labs.skipped, 1);
+  assert.strictEqual(s2.stats.labs.failed, 1);
+});
+
+test('取消立即中止挂起的 Rapports 请求（AbortError → cancelled，不计失败）', async () => {
+  let cancelled = false;
+  const abortErr = new Error('The user aborted a request.');
+  abortErr.name = 'AbortError';
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({ accessible: true }) },
+    { match: (u) => u.includes('/Prelevements?'), reply: () => resJson([LAB_ITEM]) },
+    {
+      // Rapports 挂起时用户点取消 → fetch 被 abort
+      match: (u) => u.includes('/Prelevements/lab-001/Rapports'),
+      reply: () => { cancelled = true; throw abortErr; },
+    },
+  ];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: true, imaging: false } }),
+    makeEnv(makeFetch(routes).fetchImpl, [], new Map(), { isCancelled: () => cancelled })
+  );
+  assert.strictEqual(summary.cancelled, true);
+  assert.strictEqual(summary.stats.labs.failed, 0);   // 取消不计为失败
+  assert.ok(!summary.errors.some((e) => e.id === 'lab-001'));
+});
+
+test('跳过/失败/成功都产生带状态的 item 事件', async () => {
+  const storeMap = new Map();
+  storeMap.set('dedup:C123:labsItem:lab-001', '1');   // 预置跳过
+  const meta = {};
+  await pipeline.runSweep(
+    baseJob({ sections: { labs: true, imaging: false } }),
+    makeEnv(makeFetch(defaultRoutes).fetchImpl, [], storeMap, meta)
+  );
+  const items = meta.progresses.filter((p) => p.stage === 'item').map((p) => p.payload);
+  assert.ok(items.some((p) => p.skip === true), '跳过事件');
+  assert.ok(items.some((p) => p.fail === true && p.error), '失败事件带原因');
+  // 影像正常成功事件
+  const meta2 = {};
+  await pipeline.runSweep(baseJob({ sections: { labs: false, imaging: true } }),
+    makeEnv(makeFetch(defaultRoutes).fetchImpl, [], new Map(), meta2));
+  const items2 = meta2.progresses.filter((p) => p.stage === 'item').map((p) => p.payload);
+  assert.ok(items2.some((p) => !p.skip && !p.fail && p.file.endsWith('.pdf')), '成功事件带文件名');
 });
 
 test('化验功能未开放（gate 403）：跳过板块但不报致命错误', async () => {

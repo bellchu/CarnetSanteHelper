@@ -6,6 +6,8 @@
  */
 'use strict';
 
+importScripts('/lib/core.js', '/lib/fsa.js');   // 纯逻辑 + 自选文件夹写入
+
 const STATE_KEY = 'sw:state';
 let state = null;
 
@@ -13,8 +15,26 @@ async function loadState() {
   if (state) return state;
   let saved = {};
   try { saved = (await chrome.storage.local.get(STATE_KEY))[STATE_KEY] || {}; } catch (e) { /* 忽略 */ }
-  state = Object.assign({ running: false, progress: null, log: [], summary: null, tabId: null }, saved);
+  state = Object.assign({
+    running: false, progress: null, log: [], summary: null, tabId: null,
+    lastDownloadId: null, fallbackCount: 0,
+    items: [], stats: { imaging: null, labs: null }, current: null, startedTs: null,
+  }, saved);
   return state;
+}
+
+// 任务判活：progress.ts 心跳超过 90s 无更新 → 视为任务已死（SW 被杀/页面关闭），自动复位
+const STALE_MS = 120 * 1000;
+async function checkAlive(st) {
+  if (!st.running) return;
+  const ts = st.progress && st.progress.ts;
+  if (!ts || Date.now() - ts > STALE_MS) {
+    st.log.push({ ts: Date.now(), level: 'warn', msg: '检测到任务失去心跳（浏览器休眠了后台或页面已关闭），已复位状态' });
+    if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
+    st.running = false;
+    st.summary = st.summary || { fatal: '任务中断（心跳超时）。请刷新门户页面后重跑；已下载的文件不受影响。' };
+    await saveState();
+  }
 }
 
 async function saveState() {
@@ -24,23 +44,101 @@ async function saveState() {
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   (async function () {
     const st = await loadState();
+    await checkAlive(st);
     switch (msg && msg.type) {
       case 'download': {
+        // 边界净化：下载 API / 文件写入都按相对路径处理
+        const filename = CSHCore.safeRelativePath(msg.filename);
+        if (!filename) {
+          sendResponse({ ok: false, error: 'invalid filename: ' + msg.filename });
+          return;
+        }
+        // 优先写入用户自选的文件夹（File System Access）
+        try {
+          const h = await CSHFsa.getHandle();
+          if (h) {
+            if (await CSHFsa.checkPermission(h)) {
+              const parsed = CSHCore.parseDataUrl(msg.dataUrl);
+              await CSHFsa.writeFile(h, filename, new Blob([parsed.bytes], { type: parsed.mime }));
+              st.lastDownloadId = null;   // 所选文件夹模式下不再指向下载目录的旧文件
+              await saveState();
+              sendResponse({ ok: true, fsa: true, filename: filename });
+              return;
+            }
+            // 有所选文件夹但授权失效 → 明确计数提示（不再静默回退）
+            st.fallbackCount++;
+            st.log.push({
+              ts: Date.now(), level: 'warn',
+              msg: '所选文件夹未授权（到 ⚙ 设置重选一次，授权时选「允许每次访问」），文件改存浏览器下载目录：' + filename,
+            });
+          }
+        } catch (e) {
+          // 自选文件夹写入失败（被移走/拔盘等）→ 回退下载目录并记录
+          st.fallbackCount++;
+          st.log.push({
+            ts: Date.now(), level: 'warn',
+            msg: '写入所选文件夹失败，已改存浏览器下载目录：' + ((e && e.message) || e),
+          });
+        }
+        if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
+        await saveState();
+        // 回退：chrome.downloads（保存到默认下载目录的子文件夹）
         try {
           const id = await chrome.downloads.download({
             url: msg.dataUrl,
-            filename: msg.filename,       // 相对路径 → 下载目录下的子文件夹
-            conflictAction: 'uniquify',   // 重名自动加 (1)
+            filename: filename,          // 相对路径 → 下载目录下的子文件夹
+            conflictAction: 'uniquify',  // 重名自动加 (1)
             saveAs: false,
           });
+          if (id == null) {
+            // 用户在「保存位置」对话框点了取消（通常因浏览器开启了"下载前询问保存位置"）
+            st.log.push({
+              ts: Date.now(), level: 'warn',
+              msg: '保存对话框被取消。若每份文件都弹出询问，请在浏览器设置中关闭「下载前询问每个文件的保存位置」后重跑。',
+            });
+            if (st.log.length > 200) st.log.splice(0, st.log.length - 200);
+            await saveState();
+            sendResponse({ ok: false, error: '保存对话框被取消（若每份文件都弹窗，请关闭浏览器设置的「下载前询问每个文件的保存位置」）' });
+            return;
+          }
+          st.lastDownloadId = id;
+          await saveState();
           sendResponse({ ok: true, id: id });
         } catch (e) {
           sendResponse({ ok: false, error: String((e && e.message) || e) });
         }
         return;
       }
+      case 'fsaStatus': {
+        const h = await CSHFsa.getHandle();
+        if (!h) { sendResponse({ mode: 'downloads' }); return; }
+        if (await CSHFsa.checkPermission(h)) sendResponse({ mode: 'fsa', name: h.name });
+        else sendResponse({ mode: 'reauth', name: h.name });
+        return;
+      }
+      case 'getLastDownloadId':
+        sendResponse({ id: st.lastDownloadId });
+        return;
       case 'progress':
         st.progress = Object.assign({ stage: msg.stage, ts: Date.now() }, msg.payload || {});
+        if (msg.stage === 'item') {
+          // 逐条事件历史（环形，最多 400 条）供状态面板渲染
+          const p = msg.payload || {};
+          st.items.push({
+            ts: Date.now(),
+            section: p.section,
+            status: p.skip ? 'skip' : (p.fail ? 'fail' : 'ok'),
+            name: p.file || '',
+            error: p.error || '',
+            n: p.n || 1,
+          });
+          if (st.items.length > 400) st.items.splice(0, st.items.length - 400);
+        } else if (msg.stage === 'stats') {
+          st.stats = st.stats || {};
+          st.stats[msg.payload.section] = msg.payload;
+        } else if (msg.stage === 'itemwait') {
+          st.current = msg.payload;
+        }
         await saveState();
         return;
       case 'log':
@@ -57,6 +155,11 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
         if (st.running) { sendResponse({ ok: false, error: 'busy' }); return; }
         st.running = true;
         st.summary = null;
+        st.fallbackCount = 0;
+        st.items = [];
+        st.stats = { imaging: null, labs: null };
+        st.current = null;
+        st.startedTs = Date.now();
         st.progress = { stage: 'start', ts: Date.now() };
         st.tabId = msg.tabId;
         await saveState();
@@ -71,8 +174,18 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
         return;
       }
       case 'cancel': {
+        let delivered = false;
         if (st.tabId != null) {
-          try { await chrome.tabs.sendMessage(st.tabId, { type: 'cancelSweep' }); } catch (e) { /* 页面可能已关闭 */ }
+          try {
+            await chrome.tabs.sendMessage(st.tabId, { type: 'cancelSweep' });
+            delivered = true;
+          } catch (e) { /* 页面可能已关闭 */ }
+        }
+        // 页面不可达（或已无任务在跑）→ 视为要求强制复位，解除卡死的运行态
+        if (!delivered || !st.running) {
+          st.running = false;
+          st.summary = st.summary || { fatal: '已强制复位。上次任务状态丢失；已下载的文件不受影响。' };
+          await saveState();
         }
         return;
       }
@@ -82,6 +195,11 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
           progress: st.progress,
           summary: st.summary,
           log: st.log.slice(-50),
+          fallbackCount: st.fallbackCount || 0,
+          items: (st.items || []).slice(-100),
+          stats: st.stats || { imaging: null, labs: null },
+          current: st.current,
+          startedTs: st.startedTs,
         });
         return;
       case 'reset':

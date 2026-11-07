@@ -56,7 +56,8 @@ gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/
 
 | 设置 | 说明 |
 |---|---|
-| 根文件夹 / 两个子文件夹名 | 归档目录结构，默认 `Carnet santé/Prélèvements`、`Carnet santé/Imagerie médicale` |
+| 报告保存文件夹 | **自选任意磁盘文件夹**（Chrome/Edge 桌面版）：点「选择文件夹…」授权后，报告直接写入该文件夹（含子目录结构）。授权时选「允许每次访问」可免重复授权；未选择或写入失败时自动回退浏览器下载目录 |
+| 根文件夹 / 两个子文件夹名 | 目标文件夹内的归档结构，默认 `Carnet santé/Prélèvements`、`Carnet santé/Imagerie médicale`（设置页有完整保存位置预览；回退模式下相对浏览器下载目录，填绝对路径会自动转为相对路径） |
 | 文件名模板 | 可用变量 `{date} {label} {prescriber} {section} {id} {year}`，默认 `{date} - {label}` |
 | 每份报告间隔 | 请求间隔毫秒数，默认 400ms（对站点友好，请勿调到 0） |
 | 回溯年数 | 默认 6 年（影像接口单次查询跨度上限约 6 年，扩展会自动分段） |
@@ -80,6 +81,12 @@ gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper && bash ~/Code/
 
 | 症状 | 处理 |
 |---|---|
+| 列表查询报 HTTP 500（如 `ExamensImagerie?DateDebut=…`） | 服务端对日期跨度/格式敏感：扩展会自动换日期格式重试并按年二分缩小范围；若个别年份仍失败会记入错误并继续——这些年份可能是超出数据保留期（影像/化验在线约 3 年） |
+| 报 "Failed to fetch" | 通常因跨域拦截：扩展已改为优先用页面同源地址调用 API。请确认停留在**已登录**的 `carnetsante.gouv.qc.ca` 标签页，刷新一次该页再点扩展重试 |
+| 每份文件都弹出「保存位置」对话框 | 浏览器开启了「下载前询问每个文件的保存位置」；到 `chrome://settings/downloads`（Edge 为 `edge://settings/downloads`）关闭后重跑即可，已下载的会自动跳过 |
+| 想保存到下载目录以外的位置 | 在 ⚙ 设置点「选择文件夹…」自选任意文件夹（见上方「报告保存文件夹」）；仅在浏览器不支持或授权失效时才会回退到下载目录 |
+| 设置页显示文件夹 ⚠ / popup 目标带 ⚠ | 授权过期（浏览器重启后可能发生）：到设置里重选一次该文件夹，授权提示选「允许每次访问」 |
+| 文件夹写入失败 | 文件夹被移动/删除/所在磁盘拔出时会自动改存浏览器下载目录，并在日志与错误里说明 |
 | 提示未检测到登录会话 | 先登录门户并停留在其页面（`carnetsante.gouv.qc.ca`），刷新一次后再点扩展 |
 | 下载中途大量失败 / 401 | 令牌可能过期，扩展会自动取新令牌重试一次；仍失败就刷新门户页面后重跑（已下载的会自动跳过） |
 | 化验板块显示"功能未开放" | 该功能未对你开启（`PrelevementsAccessibles` 拒绝），扩展会跳过化验只处理影像 |

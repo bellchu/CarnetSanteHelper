@@ -11,7 +11,7 @@ if (self.__CSH_CONTENT) {
   self.__CSH_CONTENT = true;
   const core = self.CSHCore;
   const pipeline = self.CSHPipeline;
-  let currentCancel = null; // { value:boolean }
+  let currentCancel = null; // { flag:{value}, abort:AbortController }
 
   function readToken() {
     try {
@@ -31,19 +31,25 @@ if (self.__CSH_CONTENT) {
   async function probe() {
     const token = readToken();
     if (!token) return { hasToken: false };
-    try {
-      const res = await fetch(pipeline.API.www + '/api/1/Citoyens', {
-        headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
-      });
-      if (!res.ok) return { hasToken: true, profileError: 'HTTP ' + res.status };
-      const j = await res.json();
-      return {
-        hasToken: true,
-        profile: { name: ((j.Prenom || '') + ' ' + (j.Nom || '')).trim(), id: j.IdCitoyen },
-      };
-    } catch (e) {
-      return { hasToken: true, profileError: String(e && e.message || e) };
+    // 候选基址：页面 origin（同源，无跨域）→ www 域
+    const bases = [location.origin, pipeline.API.www];
+    let lastErr = null;
+    for (const b of bases) {
+      try {
+        const res = await fetch(b + '/api/1/Citoyens', {
+          headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+        });
+        if (!res.ok) { lastErr = 'HTTP ' + res.status; continue; }
+        const j = await res.json();
+        return {
+          hasToken: true,
+          profile: { name: ((j.Prenom || '') + ' ' + (j.Nom || '')).trim(), id: j.IdCitoyen },
+        };
+      } catch (e) {
+        lastErr = String((e && e.message) || e);
+      }
     }
+    return { hasToken: true, profileError: lastErr };
   }
 
   function post(msg) {
@@ -55,9 +61,12 @@ if (self.__CSH_CONTENT) {
 
   async function startSweep(job) {
     const cancelFlag = { value: false };
-    currentCancel = cancelFlag;
+    const abort = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    currentCancel = { flag: cancelFlag, abort: abort };
+    job.apiBase = location.origin;   // 优先同源调用，避免跨域预检被拦
     const env = {
       fetchImpl: function (url, init) { return fetch(url, init); },
+      signal: abort ? abort.signal : undefined,
       downloadFn: async function (item) {
         if (job.dryRun) return { ok: true, dryRun: true };
         return await chrome.runtime.sendMessage({
@@ -100,7 +109,10 @@ if (self.__CSH_CONTENT) {
         sendResponse({ ok: true });
         return;
       case 'cancelSweep':
-        if (currentCancel) currentCancel.value = true;
+        if (currentCancel) {
+          currentCancel.flag.value = true;
+          if (currentCancel.abort) { try { currentCancel.abort.abort(); } catch (e) { /* 忽略 */ } }
+        }
         sendResponse({ ok: true });
         return;
     }

@@ -12,6 +12,17 @@ test('sanitizeSegment 去除非法字符与首尾点空格', () => {
   assert.strictEqual(core.sanitizeSegment('x'.repeat(300), 50).length, 50);
 });
 
+test('safeRelativePath：绝对路径/盘符/反斜杠/越界段 → 下载目录内相对路径', () => {
+  assert.strictEqual(core.safeRelativePath('Carnet santé/Prélèvements'), 'Carnet santé/Prélèvements');
+  assert.strictEqual(core.safeRelativePath('/Users/b/Downloads/A'), 'Users/b/Downloads/A');
+  assert.strictEqual(core.safeRelativePath('C:\\Reports\\X'), 'Reports/X');
+  assert.strictEqual(core.safeRelativePath('a/../b'), 'b');
+  assert.strictEqual(core.safeRelativePath('../../x'), 'x');   // 不允许逃出下载目录
+  assert.strictEqual(core.safeRelativePath('..'), '');
+  assert.strictEqual(core.safeRelativePath('   '), '');
+  assert.strictEqual(core.safeRelativePath(null), '');
+});
+
 test('renderTemplate 空变量不留残迹', () => {
   assert.strictEqual(core.renderTemplate('{date} - {label}', { date: '2024-05-15', label: 'Radio' }), '2024-05-15 - Radio');
   assert.strictEqual(core.renderTemplate('{date} - {label}', { date: '2024-05-15' }), '2024-05-15');
@@ -55,6 +66,16 @@ test('base64 编解码往返 + %PDF 魔数', () => {
   assert.strictEqual(new TextDecoder().decode(pdfHeader), '%PDF-1.4');
   assert.strictEqual(core.bytesToDataUrl(new Uint8Array([1, 2, 3]), 'application/pdf'),
     'data:application/pdf;base64,AQID');
+});
+
+test('parseDataUrl 解析 data URL（mime + 字节往返）', () => {
+  const bytes = new TextEncoder().encode('%PDF-1.4 x');
+  const url = core.bytesToDataUrl(bytes, 'application/pdf');
+  const parsed = core.parseDataUrl(url);
+  assert.strictEqual(parsed.mime, 'application/pdf');
+  assert.deepStrictEqual(Array.from(parsed.bytes), Array.from(bytes));
+  assert.strictEqual(core.parseDataUrl('https://x/y'), null);
+  assert.strictEqual(core.parseDataUrl('data:text/plain;base64,!!!').bytes.length, 0); // 非法字符被剥离
 });
 
 test('findEmbeddedPdfs 从任意嵌套 JSON 提取内嵌 PDF', () => {

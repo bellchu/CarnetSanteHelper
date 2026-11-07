@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Carnet santé Helper",
+  "version": "1.0.0",
+  "description": "辅助 Carnet santé Québec：批量下载并整理 Prélèvements（化验）与 Imagerie médicale（影像）报告",
+  "permissions": ["downloads", "storage", "scripting"],
+  "host_permissions": [
+    "https://www.carnetsante.gouv.qc.ca/*",
+    "https://carnetsante.gouv.qc.ca/*",
+    "https://ais-passerelle-autorisation-api.ramq.gouv.qc.ca/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.carnetsante.gouv.qc.ca/*",
+        "https://carnetsante.gouv.qc.ca/*"
+      ],
+      "js": ["lib/core.js", "lib/pipeline.js", "content/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Carnet santé Helper"
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

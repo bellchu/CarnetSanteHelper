@@ -1,0 +1,10 @@
+{
+  "name": "carnet-sante-helper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chrome/Edge 扩展：批量下载并整理 Carnet santé Québec 的化验与影像报告",
+  "scripts": {
+    "test": "node --test",
+    "icons": "python3 tools/gen-icons.py"
+  }
+}

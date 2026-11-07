@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Carnet santé Helper</title>
+  <link rel="stylesheet" href="options.css">
+  <script src="../lib/core.js"></script>
+</head>
+<body>
+  <h1 id="t-appTitle"></h1>
+
+  <label class="row"><span id="t-lang" class="lbl"></span>
+    <select id="lang">
+      <option value="zh">中文</option>
+      <option value="fr">Français</option>
+      <option value="en">English</option>
+    </select>
+  </label>
+
+  <label class="row"><span id="t-root" class="lbl"></span><input id="rootFolder" type="text" size="30"></label>
+  <label class="row"><span id="t-labsDir" class="lbl"></span><input id="labsFolder" type="text" size="30"></label>
+  <label class="row"><span id="t-imagingDir" class="lbl"></span><input id="imagingFolder" type="text" size="30"></label>
+
+  <div class="row"><span id="t-tpl" class="lbl"></span><input id="template" type="text" size="30"></div>
+  <div class="hint" id="tplHelp"></div>
+  <div class="hint"><span id="tplPreviewLabel">preview</span>: <code id="tplPreview"></code></div>
+
+  <label class="row"><span id="t-delay" class="lbl"></span><input id="delayMs" type="number" min="0" max="10000" step="50"></label>
+  <label class="row"><span id="t-yearsBackLbl" class="lbl"></span><input id="yearsBack" type="number" min="1" max="30"></label>
+  <label class="chk"><input id="dedupe" type="checkbox"> <span id="t-onlyNew"></span></label>
+  <label class="chk"><input id="writeIndex" type="checkbox"> <span id="t-writeIndex"></span></label>
+
+  <div class="row">
+    <button id="save" class="primary"></button>
+    <button id="reset"></button>
+    <button id="clearDedup"></button>
+    <span id="savedFlag"></span>
+  </div>
+
+  <footer id="privacyLine"></footer>
+  <script src="options.js"></script>
+</body>
+</html>

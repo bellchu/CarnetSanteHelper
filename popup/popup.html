@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Carnet santé Helper</title>
+  <link rel="stylesheet" href="popup.css">
+  <script src="../lib/core.js"></script>
+</head>
+<body>
+  <header>
+    <b id="t-appTitle"></b>
+    <span class="spacer"></span>
+    <button id="openFolder" class="link" title="downloads folder"></button>
+    <button id="openSettings" class="link" title="settings">⚙</button>
+  </header>
+
+  <section id="statusBox"><div id="statusLine">…</div></section>
+
+  <section id="controls" hidden>
+    <div class="group-title" id="t-sections"></div>
+    <label class="chk"><input type="checkbox" id="labs" checked> <span id="t-labs"></span></label>
+    <label class="chk"><input type="checkbox" id="imaging" checked> <span id="t-imaging"></span></label>
+    <div class="row">
+      <span id="t-yearsBack"></span>
+      <input type="number" id="yearsBack" min="1" max="30" style="width:4.5em">
+    </div>
+    <label class="chk"><input type="checkbox" id="onlyNew" checked> <span id="t-onlyNew"></span></label>
+    <label class="chk"><input type="checkbox" id="dryRun"> <span id="t-dryRun"></span></label>
+    <div class="row">
+      <button id="start" class="primary"></button>
+      <button id="cancel" hidden></button>
+    </div>
+  </section>
+
+  <section id="progressBox" hidden>
+    <div id="progressLine"></div>
+    <ul id="fileList"></ul>
+  </section>
+
+  <section id="summaryBox" hidden></section>
+
+  <footer id="privacyLine"></footer>
+  <script src="popup.js"></script>
+</body>
+</html>

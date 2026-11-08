@@ -1,6 +1,6 @@
 {
   "name": "carnet-sante-helper",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "description": "Chrome/Edge extension: bulk-download and organize Carnet santé Québec lab, imaging and medication-prescription reports",
   "scripts": {

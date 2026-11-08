@@ -600,9 +600,71 @@ test('probeEarliest：早于数据起点的年份报 500 → 视为边界立即�
   const srv = makeFetch(routes);
   const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, new Map()));
   assert.strictEqual(r.labs, Y - 1);
-  const labYears = srv.calls.filter((c) => c.url.includes('/Prelevements?')).map((c) => yearOf(c.url)).sort();
-  assert.deepStrictEqual(labYears, [Y - 2, Y - 1, Y]);   // 遇 500 即停，不再探更早
+  const labYears = srv.calls.filter((c) => c.url.includes('/Prelevements?')).map((c) => yearOf(c.url));
+  // 遇 500 即停（该年按两种日期格式各试一次），不再探更早
+  assert.deepStrictEqual(Array.from(new Set(labYears)).sort(), [Y - 2, Y - 1, Y]);
+  assert.ok(!labYears.includes(Y - 3));
   assert.strictEqual(r.imaging, null);                    // 影像无任何数据 → null
+});
+
+test('probeEarliest：单年查询遇 500 换日期格式重试（与扫描侧一致）', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({}, 403) },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([]) },
+    {
+      // Medications 只认补零日期：不补零 → 500；补零 → 仅 Y-1 有数据
+      match: (u) => u.includes('/Medications?'),
+      reply: (u) => {
+        if (!/DateDebut=\d{4}-\d{2}-\d{2}&/.test(u)) return resJson({}, 500);
+        return resJson(yearOf(u) === Y - 1 ? [MED_1] : []);
+      },
+    },
+  ];
+  const srv = makeFetch(routes);
+  const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, new Map()));
+  assert.strictEqual(r.meds, Y - 1, '格式回退后应探测到数据，而不是判为无数据');
+  const medCalls = srv.calls.filter((c) => c.url.includes('/Medications?'));
+  assert.ok(medCalls.some((c) => /DateDebut=\d{4}-\d{2}-\d{2}&/.test(c.url)), '应回退到补零格式');
+  assert.ok(medCalls.some((c) => !/DateDebut=\d{4}-\d{2}-\d{2}&/.test(c.url)), '先按板块惯用格式（不补零）尝试');
+});
+
+test('probeEarliest：旧版本缓存缺 meds 键 → 只补探 meds 并合并缓存', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.includes('/Prelevements?'), reply: () => resJson([LAB_ITEM]) },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([EXAM]) },
+    { match: (u) => u.includes('/Medications?'), reply: (u) => resJson(yearOf(u) === Y - 1 ? [MED_1] : []) },
+  ];
+  const storeMap = new Map();
+  const ts = Date.now() - 60 * 1000;
+  storeMap.set('probeEarliest:C123', { ts, labs: Y - 2, imaging: Y - 3 });   // 处方功能上线前的缓存
+  const srv = makeFetch(routes);
+  const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, storeMap));
+
+  assert.strictEqual(r.meds, Y - 1);
+  assert.strictEqual(r.labs, Y - 2);      // 已有值沿用
+  assert.strictEqual(r.imaging, Y - 3);
+  assert.ok(!srv.calls.some((c) => c.url.includes('/Prelevements?')));      // 不重复探测已知板块
+  assert.ok(!srv.calls.some((c) => c.url.includes('/ExamensImagerie?')));
+  const cached = storeMap.get('probeEarliest:C123');
+  assert.deepStrictEqual(cached, { ts, labs: Y - 2, imaging: Y - 3, meds: Y - 1 });   // 合并并保留原时间戳
+});
+
+test('probeEarliest：显式 null（探过无数据）命中缓存时不重复探测', async () => {
+  const routes = [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    { match: (u) => u.includes('/Prelevements?'), reply: () => resJson([LAB_ITEM]) },
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([]) },
+    { match: (u) => u.includes('/Medications?'), reply: () => resJson([]) },
+  ];
+  const storeMap = new Map();
+  storeMap.set('probeEarliest:C123', { ts: Date.now(), labs: Y, imaging: null, meds: null });
+  const srv = makeFetch(routes);
+  const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, storeMap));
+  assert.strictEqual(r.labs, Y);
+  assert.strictEqual(r.meds, null);
+  assert.strictEqual(srv.calls.length, 1);   // 仅 Citoyens
 });
 
 test('probeEarliest：缓存命中时只请求 Citoyens，不再逐年探测', async () => {

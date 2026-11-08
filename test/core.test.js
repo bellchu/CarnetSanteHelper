@@ -86,6 +86,19 @@ test('parseDataUrl 解析 data URL（mime + 字节往返）', () => {
   assert.strictEqual(core.parseDataUrl('data:text/plain;base64,!!!').bytes.length, 0); // 非法字符被剥离
 });
 
+test('parseDataUrl 支持带 charset 的 mime（CSV 曾因此写不进所选文件夹）', () => {
+  const bytes = new TextEncoder().encode('date,label\r\n2024-01-01,A');
+  const url = core.bytesToDataUrl(bytes, 'text/csv;charset=utf-8');
+  assert.strictEqual(url, 'data:text/csv;charset=utf-8;base64,' +
+    core.bytesToBase64(bytes));
+  const parsed = core.parseDataUrl(url);
+  assert.ok(parsed, '带 charset 的 data URL 必须能解析');
+  assert.strictEqual(parsed.mime, 'text/csv');
+  assert.deepStrictEqual(Array.from(parsed.bytes), Array.from(bytes));
+  assert.strictEqual(core.parseDataUrl('data:,abc'), null);                 // 非 base64
+  assert.strictEqual(core.parseDataUrl('data:text/plain;base64'), null);    // 缺逗号
+});
+
 test('findEmbeddedPdfs 从任意嵌套 JSON 提取内嵌 PDF', () => {
   const pdfBytes = new TextEncoder().encode('%PDF-1.4 labs');
   const payload = {

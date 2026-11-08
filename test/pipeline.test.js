@@ -670,7 +670,6 @@ test('earliest 收紧起始年：不查询无数据年份（避免报错）；�
 });
 
 /* ---------- Médications：处方药历史快照 ---------- */
-
 function medRoutes(medsReply) {
   return [
     { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
@@ -762,8 +761,7 @@ test('Médications：earliest 收紧起始年，不查询更早区间', async ()
   }
 });
 
-test('Médications：列表整体失败 → 记错误、不写快照、found=0', async () => {
-  const srv = makeFetch(medRoutes(() => resJson({}, 500)));
+test('Médications：列表整体失败 → 记错误、不写快照、found=0', async () => {  const srv = makeFetch(medRoutes(() => resJson({}, 500)));
   const downloads = [];
   const summary = await pipeline.runSweep(
     baseJob({ sections: { labs: false, imaging: false, meds: true }, startYear: Y - 1 }),
@@ -787,4 +785,38 @@ test('probeEarliest：meds 逐年后退探测（数据后连续两空年即停�
   const medYears = srv.calls.filter((c) => c.url.includes('/Medications?')).map((c) => yearOf(c.url));
   assert.strictEqual(Math.min(...medYears), Y - 3);   // Y-2、Y-3 两空年后停
   assert.ok(!medYears.includes(Y - 4));
+});
+
+/* ---------- 写盘边界：内容脚本用 data URL 传给 SW，SW 再解码 ---------- */
+
+test('每个写盘项都能通过 data URL 边界（含 CSV 的 charset 参数）', async () => {
+  // 回归：text/csv;charset=utf-8 曾被 parseDataUrl 判为无效 → SW 写入所选文件夹失败并静默回退下载目录
+  const srv = makeFetch(defaultRoutes.concat(medRoutes(() => resJson([MED_1]))));
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: true, imaging: true, meds: true } }),
+    makeEnv(srv.fetchImpl, downloads, new Map(), {})
+  );
+  assert.ok(summary.stats.meds.downloaded > 0);
+  assert.ok(downloads.length >= 4, '应有 PDF、CSV、JSON 三类写盘项');
+  for (const d of downloads) {
+    const parsed = core.parseDataUrl(core.bytesToDataUrl(d.bytes, d.mime));
+    assert.ok(parsed, 'data URL 无法解析（mime=' + d.mime + ', file=' + d.filename + '）');
+    assert.deepStrictEqual(Array.from(parsed.bytes), Array.from(d.bytes), '字节在边界处不一致: ' + d.filename);
+  }
+  assert.ok(downloads.some((d) => /\.csv$/.test(d.filename) && /charset=utf-8/.test(d.mime)));
+});
+
+test('Médications：写盘返回失败时计为失败并记错误（不静默成功）', async () => {
+  const srv = makeFetch(medRoutes(() => resJson([MED_1])));
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: false, meds: true }, startYear: Y - 1 }),
+    Object.assign(makeEnv(srv.fetchImpl, [], new Map(), {}), {
+      downloadFn: async () => ({ ok: false, error: 'FSA denied' }),
+    })
+  );
+  assert.strictEqual(summary.stats.meds.downloaded, 0);
+  assert.ok(summary.stats.meds.failed > 0);
+  assert.ok(summary.errors.some((e) => e.section === 'meds' && e.error.includes('FSA denied')));
+  assert.deepStrictEqual(summary.files, []);
 });

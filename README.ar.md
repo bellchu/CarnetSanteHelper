@@ -55,17 +55,17 @@ Downloads/
 
 **الخيار أ · عبر سكربت التثبيت (أسهل للتحديثات)**
 
-على جهاز جديد (هذا المستودع خاص — يلزم Git وتسجيل دخولك إلى GitHub):
+على جهاز جديد (يلزم Git؛ المستودع عام، فلا حاجة إلى حساب GitHub):
 
 macOS / Linux — الطرفية:
 ```sh
-gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
 Windows — PowerShell:
 ```powershell
-gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git $HOME\Code\CarnetSanteHelper
 cd $HOME\Code\CarnetSanteHelper
 powershell -ExecutionPolicy Bypass -File tools\install.ps1
 ```
@@ -74,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 
 **الخيار ب · بدون Git — نزّل ملف ZIP**
 
-1. في GitHub: الزر الأخضر **Code** ← **Download ZIP** ← فكّ الضغط (مثل `CarnetSanteHelper-main`).
+1. نزّل ملف ZIP: [CarnetSanteHelper-main.zip](https://github.com/bellchu/CarnetSanteHelper/archive/refs/heads/main.zip) ← فكّ الضغط (مثل `CarnetSanteHelper-main`). في GitHub يمكنك أيضًا استخدام الزر الأخضر **Code** ← **Download ZIP**.
 2. انسخ المسار الكامل **للمجلد المفكوك** (وليس ملف ZIP نفسه). في Windows: Shift + زر أيمن على المجلد ← **نسخ كمسار**.
 
 **بعد ذلك، في Chrome أو Edge (الخطوة اليدوية الوحيدة — قاعدة أمنية في المتصفح للإضافات غير المنشورة):**

@@ -55,17 +55,17 @@ Already-downloaded reports are **skipped automatically**, so you can re-run peri
 
 **Option A · with the install script (easiest updates)**
 
-On a new machine (this repo is private — Git + your GitHub login required):
+On a new machine (Git required; the repo is public, so no GitHub account is needed):
 
 macOS / Linux — Terminal:
 ```sh
-gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
 Windows — PowerShell:
 ```powershell
-gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git $HOME\Code\CarnetSanteHelper
 cd $HOME\Code\CarnetSanteHelper
 powershell -ExecutionPolicy Bypass -File tools\install.ps1
 ```
@@ -74,7 +74,7 @@ Already cloned? From the repo, run `bash tools/install.sh` (macOS/Linux) or `pow
 
 **Option B · no Git — download a ZIP**
 
-1. On GitHub: green **Code** button → **Download ZIP** → unzip it (e.g. `CarnetSanteHelper-main`).
+1. Download the ZIP: [CarnetSanteHelper-main.zip](https://github.com/bellchu/CarnetSanteHelper/archive/refs/heads/main.zip) → unzip it (e.g. `CarnetSanteHelper-main`). On GitHub you can also use the green **Code** → **Download ZIP**.
 2. Copy the full path of the **unzipped** folder (not the ZIP file). Windows tip: Shift+right-click the folder → **Copy as path**.
 
 **Then, in Chrome or Edge (the one manual step — browser security requires it for unpublished extensions):**

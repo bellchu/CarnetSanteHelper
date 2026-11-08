@@ -55,17 +55,17 @@ Rapò ki deja telechaje yo **inyore otomatikman**: ou ka reji li peryodikman, se
 
 **Opsyon A · ak script enstalasyon an (maj fasil)**
 
-Sou yon nouvo machin (depo a prive — ou bezwen Git ak koneksyon GitHub ou):
+Sou yon nouvo machin (ou bezwen Git; depo a piblik, pa bezwen kont GitHub):
 
 macOS / Linux — Tèminal:
 ```sh
-gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
 Windows — PowerShell:
 ```powershell
-gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git $HOME\Code\CarnetSanteHelper
 cd $HOME\Code\CarnetSanteHelper
 powershell -ExecutionPolicy Bypass -File tools\install.ps1
 ```
@@ -74,7 +74,7 @@ Ou deja klone l? Andedan depo a, kouri `bash tools/install.sh` (macOS/Linux) osw
 
 **Opsyon B · san Git — telechaje yon ZIP**
 
-1. Sou GitHub: bouton vèt **Code** → **Download ZIP** → dekonprese l (egzanp `CarnetSanteHelper-main`).
+1. Telechaje ZIP la: [CarnetSanteHelper-main.zip](https://github.com/bellchu/CarnetSanteHelper/archive/refs/heads/main.zip) → dekonprese l (egzanp `CarnetSanteHelper-main`). Sou GitHub ou ka sèvi tou ak bouton vèt **Code** → **Download ZIP**.
 2. Kopye chemen konplè **dosiye dekonprese a** (pa fichye ZIP la). Sou Windows: Shift + klike dwat sou dosiye a → **Kopye kòm chemen**.
 
 **Apre sa, nan Chrome oswa Edge (sèl etap manuel la — se yon règ sekirite navigatè a pou estansyon ki pa pibliye):**

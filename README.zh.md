@@ -55,17 +55,17 @@ Downloads/
 
 **方式 A · 用安装脚本（更新最省事）**
 
-新机器上（本仓库为私有，需要 Git 与你的 GitHub 登录）：
+新机器上（需要 Git；仓库已公开，无需 GitHub 账号）：
 
 macOS / Linux——终端：
 ```sh
-gh repo clone bellchu/CarnetSanteHelper ~/Code/CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git ~/Code/CarnetSanteHelper
 bash ~/Code/CarnetSanteHelper/tools/install.sh
 ```
 
 Windows——PowerShell：
 ```powershell
-gh repo clone bellchu/CarnetSanteHelper $HOME\Code\CarnetSanteHelper
+git clone https://github.com/bellchu/CarnetSanteHelper.git $HOME\Code\CarnetSanteHelper
 cd $HOME\Code\CarnetSanteHelper
 powershell -ExecutionPolicy Bypass -File tools\install.ps1
 ```
@@ -74,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 
 **方式 B · 不用 Git——下载 ZIP**
 
-1. 在 GitHub 上点绿色 **Code** → **Download ZIP** → 解压（如 `CarnetSanteHelper-main`）。
+1. 下载 ZIP：[CarnetSanteHelper-main.zip](https://github.com/bellchu/CarnetSanteHelper/archive/refs/heads/main.zip) → 解压（如 `CarnetSanteHelper-main`）。也可以在 GitHub 上点绿色 **Code** → **Download ZIP**。
 2. 复制**解压后文件夹**的完整路径（不是 ZIP 文件本身）。Windows 小技巧：按住 Shift 右键文件夹 → **复制文件地址**。
 
 **接着在 Chrome 或 Edge 里（唯一的人工一步——未上架扩展必须如此，是浏览器安全规则）：**

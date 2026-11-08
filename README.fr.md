@@ -2,6 +2,8 @@
 
 [English](README.md) · **Français** · [中文](README.zh.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Kreyòl ayisyen](README.ht.md)
 
+![Chrome Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white) ![Edge](https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white) ![Local only](https://img.shields.io/badge/privacy-local--only-0f766e) ![13 languages](https://img.shields.io/badge/UI-13%20languages-6b7280)
+
 Téléchargez en lot et organisez automatiquement vos rapports du [Carnet santé Québec](https://carnetsante.gouv.qc.ca) :
 
 - **Prélèvements** (résultats de laboratoire)
@@ -9,6 +11,25 @@ Téléchargez en lot et organisez automatiquement vos rapports du [Carnet santé
 - **Médications** (ordonnances) — exportées en un instantané CSV/JSON chronologique (médicament, DIN, classe, prescripteur, pharmacie, renouvellements restants…), pour voir votre profil de médications période par période
 
 Le portail n'offre aucun export en lot ; cette extension le fait pour vous, dans votre propre session connectée. L'interface parle 13 langues et suit le mode clair/sombre de votre système.
+
+## Fonctionnalités
+
+- **Téléchargement en lot en un clic** — prélèvements, imagerie et ordonnances, limité aux périodes qui contiennent réellement des données (détectées automatiquement).
+- **S'archive tout seul** — un PDF daté par rapport dans des sous-dossiers, plus un `index.csv` récapitulatif (et `donnees.json`).
+- **Votre dossier, vos règles** — enregistrez où vous voulez sur le disque ou dans Téléchargements ; renommez les dossiers ; créez votre modèle de nom de fichier.
+- **Incrémental** — les rapports déjà téléchargés sont ignorés ; une relance périodique ne récupère que les nouveaux.
+- **L'historique des ordonnances en données** — un instantané CSV/JSON chronologique des médicaments (médicament, DIN, classe, prescripteur, pharmacie, renouvellements restants).
+- **Progression lisible** — barre, compteurs par section, fichier en cours, durée/reste et journal coloré.
+- **Privé par conception** — fonctionne localement dans votre session connectée ; aucun service tiers, rien n'est collecté ni envoyé.
+- **Lisible partout** — 13 langues d'interface, mode clair/sombre.
+
+## Captures d'écran
+
+<img src="docs/screenshots/popup-states.fr.png" width="1030" alt="Fenêtre de l'extension : prêt, téléchargement et terminé">
+
+Réglages — emplacement, arborescence, modèle de nom et rythme des requêtes :
+
+<img src="docs/screenshots/options.fr.png" width="620" alt="Page des réglages">
 
 ## Ce que vous obtenez
 
@@ -110,4 +131,4 @@ Tout se passe localement dans votre navigateur. **L'extension ne contacte aucun 
 - Vaccination sur un autre portail ; valeurs de laboratoire annuelles (`ResultatsAnalyse`) non incluses.
 - Pour organiser **vos propres** dossiers de santé — utilisez-le raisonnablement (le délai par défaut n'est pas là pour rien).
 
-Développeurs : `npm test` — 41 tests unit + intégration simulants tout le pipeline face à un `/api/1` factice. Arborescence : `lib/` (logique + orchestration), `content/` (jeton + appels API), `background/` (téléchargements & état), `popup/`, `options/`, `folder/`.
+Développeurs : `npm test` — 47 tests unit + intégration simulants tout le pipeline face à un `/api/1` factice. Arborescence : `lib/` (logique + orchestration), `content/` (jeton + appels API), `background/` (téléchargements & état), `popup/`, `options/`, `folder/`.

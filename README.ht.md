@@ -2,6 +2,8 @@
 
 [English](README.md) · [Français](README.fr.md) · [中文](README.zh.md) · [العربية](README.ar.md) · [Español](README.es.md) · **Kreyòl ayisyen**
 
+![Chrome Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white) ![Edge](https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white) ![Local only](https://img.shields.io/badge/privacy-local--only-0f766e) ![13 languages](https://img.shields.io/badge/UI-13%20languages-6b7280)
+
 Telechaje an lo epi òganize otomatikman rapò ou yo sou [Carnet santé Québec](https://carnetsante.gouv.qc.ca) — pòtal sante Quebec la:
 
 - **Prélèvements** (rezilta laboratwa)
@@ -9,6 +11,25 @@ Telechaje an lo epi òganize otomatikman rapò ou yo sou [Carnet santé Québec]
 - **Médications** (òdonnans doktè) — ekspòte kòm yon enstantane CSV/JSON nan lòd kwonolojik (medikaman an, DIN, klas li, doktè a, famasi a, renouvèlman ki rete…) pou wè sitiyasyon medikaman ou peryòd pa peryòd
 
 Pòtal la pa gen fonksyon ekspòte an lo; estansyon sa a fè l pou ou, nan sesyon ou menm ki konekte. Entèfas la pale 13 lang, epi li swiv mòd klè/nwa sistèm ou an.
+
+## Fonksyon
+
+- **Telechajman an lo ak yon klike** — prélèvements, imaj ak òdonnans, sèlman pou peryòd ki gen done tout bon (detekte otomatikman).
+- **Li achive pou li menm** — yon PDF ki gen dat pou chak rapò nan sous-dosiye, plis yon `index.csv` rezime (ak `donnees.json`).
+- **Dosiye ou, règ ou** — sove nenpòt kote sou disk la oswa nan Telechajman; chanje non dosiye yo; kreye pwòp modèl non fichye ou.
+- **Enkremental** — rapò ki deja telechaje yo inyore, kidonk relans peryodik yo sèlman pran sa ki nouvo.
+- **Istwa òdonnans kòm done** — yon enstantane CSV/JSON kwonolojik medikaman (medikaman, DIN, klas, doktè, famasi, renouvèlman ki rete).
+- **Pwogrè klè** — ba pwogrè, konte pa seksyon, fichye aktyèl, tan/reta ak jounal ki gen koulè.
+- **Prive pa konsepsyon** — mache lokalman nan sesyon ou menm ki konekte; pa gen sèvis twazyèm pati, anyen pa kolekte ni voye.
+- **Lizib tout kote** — 13 lang entèfas, mòd klè/nwa.
+
+## Kaptire ekran
+
+<img src="docs/screenshots/popup-states.en.png" width="1030" alt="Ti fenèt estansyon an: prè, ap telechaje, fini">
+
+Paramèt — kote sovgade, estrikti dosiye, modèl non ak ritm demann yo:
+
+<img src="docs/screenshots/options.en.png" width="620" alt="Paj paramèt">
 
 ## Sa ou ap jwenn
 
@@ -110,4 +131,4 @@ Tout bagay pase lokalman nan navigatè ou a. **Estansyon an pa konekte ak okenn 
 - Vaksinasyon se sou yon lòt pòtal; valè laboratwa anyèl (`ResultatsAnalyse`) pa enkli.
 - Pou òganize **dosye sante ou menm** — itilize l avèk judgement (intèval pa défòt la gen rezon l).
 
-Devlopè: `npm test` — 41 tès inite + entegrasyon ki simile tout pipeline a kont yon `/api/1` fèt ak men. Estrikti: `lib/` (lojik + òkestrasyon), `content/` (jeton + apèl API), `background/` (telechajman eta), `popup/`, `options/`, `folder/`.
+Devlopè: `npm test` — 47 tès inite + entegrasyon ki simile tout pipeline a kont yon `/api/1` fèt ak men. Estrikti: `lib/` (lojik + òkestrasyon), `content/` (jeton + apèl API), `background/` (telechajman eta), `popup/`, `options/`, `folder/`.

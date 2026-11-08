@@ -2,6 +2,8 @@
 
 [English](README.md) · [Français](README.fr.md) · [中文](README.zh.md) · [العربية](README.ar.md) · **Español** · [Kreyòl ayisyen](README.ht.md)
 
+![Chrome Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white) ![Edge](https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white) ![Local only](https://img.shields.io/badge/privacy-local--only-0f766e) ![13 languages](https://img.shields.io/badge/UI-13%20languages-6b7280)
+
 Descargue en lote y organice automáticamente sus informes de [Carnet santé Québec](https://carnetsante.gouv.qc.ca) — el portal de salud de Quebec:
 
 - **Prélèvements** (resultados de laboratorio)
@@ -9,6 +11,25 @@ Descargue en lote y organice automáticamente sus informes de [Carnet santé Qu�
 - **Médications** (recetas médicas) — exportadas como instantánea CSV/JSON cronológica (medicamento, DIN, clase, prescriptor, farmacia, renovaciones restantes…), para ver su perfil de medicamentos período por período
 
 El portal no tiene exportación en lote; esta extensión lo hace por usted, dentro de su propia sesión iniciada. La interfaz habla 13 idiomas y sigue el modo claro/oscuro de su sistema.
+
+## Funciones
+
+- **Descarga en lote con un clic** — análisis, imágenes y recetas, limitada a los períodos que realmente tienen datos (detectados automáticamente).
+- **Se archiva solo** — un PDF fechado por informe en carpetas por sección, más un `index.csv` resumen (y `donnees.json`).
+- **Su carpeta, sus reglas** — guarde donde quiera en el disco o en Descargas; renombre las carpetas; diseñe su plantilla de nombre.
+- **Incremental** — los informes ya descargados se omiten, así que las reejecuciones periódicas solo traen lo nuevo.
+- **Historial de recetas como datos** — instantánea CSV/JSON cronológica de medicamentos (medicamento, DIN, clase, prescriptor, farmacia, renovaciones restantes).
+- **Progreso claro** — barra, contadores por sección, archivo actual, tiempo/restante y registro con colores.
+- **Privado por diseño** — funciona localmente dentro de su sesión iniciada; sin servicios de terceros, nada se recopila ni se envía.
+- **Legible en todas partes** — 13 idiomas de interfaz, modo claro/oscuro.
+
+## Capturas de pantalla
+
+<img src="docs/screenshots/popup-states.en.png" width="1030" alt="Ventana de la extensión: listo, descargando y terminado">
+
+Ajustes — ubicación, estructura de carpetas, plantilla de nombres y ritmo de solicitudes:
+
+<img src="docs/screenshots/options.en.png" width="620" alt="Página de ajustes">
 
 ## Qué obtiene
 
@@ -110,4 +131,4 @@ Todo ocurre localmente en su navegador. **La extensión no se conecta a ningún 
 - La vacunación está en otro portal; los valores anuales de laboratorio (`ResultatsAnalyse`) no se incluyen.
 - Para organizar **sus propios** expedientes de salud — úselo con sensatez (el retardo por defecto tiene su razón de ser).
 
-Desarrolladores: `npm test` — 41 pruebas unitarias + de integración que simulan todo el pipeline contra un `/api/1` falso. Estructura: `lib/` (lógica + orquestación), `content/` (token + llamadas), `background/` (descargas y estado), `popup/`, `options/`, `folder/`.
+Desarrolladores: `npm test` — 47 pruebas unitarias + de integración que simulan todo el pipeline contra un `/api/1` falso. Estructura: `lib/` (lógica + orquestación), `content/` (token + llamadas), `background/` (descargas y estado), `popup/`, `options/`, `folder/`.

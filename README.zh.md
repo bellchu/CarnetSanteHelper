@@ -2,13 +2,34 @@
 
 [English](README.md) · [Français](README.fr.md) · **中文** · [العربية](README.ar.md) · [Español](README.es.md) · [Kreyòl ayisyen](README.ht.md)
 
-一键**批量下载**并**自动整理**[Carnet santé Québec](https://carnetsante.gouv.qc.ca)（魁省健康记录门户）的两类报告——
+![Chrome Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white) ![Edge](https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white) ![Local only](https://img.shields.io/badge/privacy-local--only-0f766e) ![13 languages](https://img.shields.io/badge/UI-13%20languages-6b7280)
+
+一键**批量下载**并**自动整理**[Carnet santé Québec](https://carnetsante.gouv.qc.ca)（魁省健康记录门户）的三类报告——
 
 - **Prélèvements**（化验 / 采样报告）
 - **Imagerie médicale**（医学影像报告）
 - **Médications**（医生处方药）——导出为按时间排序的 CSV/JSON 快照（药名、DIN、类别、处方医生、药房、剩余取药次数等），方便按时间段了解用药概况
 
 门户本身没有批量导出功能；本扩展在你的登录会话内替你完成。界面支持 13 种语言，并自动跟随系统深 / 浅色模式。
+
+## 功能一览
+
+- **一键批量下载**——化验、影像与处方药，只选取确实有数据的时段（自动检测）。
+- **自动归档**——每份报告一个带日期的 PDF，按板块分文件夹，并生成汇总 `index.csv`（及 `donnees.json`）。
+- **文件夹随你定**——可保存到磁盘任意位置或下载目录；自定义根目录/子目录名与文件名模板。
+- **增量下载**——已下载的报告自动跳过，定期重跑只获取新增内容。
+- **处方史数据化**——按时间排序的用药 CSV/JSON 快照（药名、DIN、类别、处方医生、药房、剩余取药次数）。
+- **进度清晰**——进度条、分板块计数、当前文件、用时/预计剩余与彩色日志。
+- **本地隐私**——在你自己的登录会话内本地运行；不连第三方服务，不收集、不上传任何数据。
+- **随处可读**——界面支持 13 种语言，跟随系统深/浅色模式。
+
+## 截图
+
+<img src="docs/screenshots/popup-states.en.png" width="1030" alt="扩展弹窗：准备就绪、下载中、完成">
+
+设置页——保存位置、目录结构、文件名模板与请求间隔：
+
+<img src="docs/screenshots/options.en.png" width="620" alt="设置页">
 
 ## 你会得到什么
 
@@ -110,4 +131,4 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 - 不含疫苗接种（另一门户）；不含逐年化验数值明细（`ResultatsAnalyse`）。
 - 仅供整理**本人**健康记录——请合理使用（默认请求间隔即是为此）。
 
-开发者：`npm test` —— 41 个 node:test 单元 + 集成测试（针对模拟 `/api/1` 的完整流水线）。目录：`lib/`（纯逻辑与编排）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`、`folder/`。
+开发者：`npm test` —— 47 个 node:test 单元 + 集成测试（针对模拟 `/api/1` 的完整流水线）。目录：`lib/`（纯逻辑与编排）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`、`folder/`。

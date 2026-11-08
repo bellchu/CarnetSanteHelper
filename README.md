@@ -2,6 +2,8 @@
 
 **English** · [Français](README.fr.md) · [中文](README.zh.md) · [العربية](README.ar.md) · [Español](README.es.md) · [Kreyòl ayisyen](README.ht.md)
 
+![Chrome Manifest V3](https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?logo=googlechrome&logoColor=white) ![Edge](https://img.shields.io/badge/Edge-supported-0078D7?logo=microsoftedge&logoColor=white) ![Local only](https://img.shields.io/badge/privacy-local--only-0f766e) ![13 languages](https://img.shields.io/badge/UI-13%20languages-6b7280)
+
 Bulk-download and auto-organize your reports from [Carnet santé Québec](https://carnetsante.gouv.qc.ca) — the Quebec health-record portal:
 
 - **Prélèvements** (lab results)
@@ -9,6 +11,25 @@ Bulk-download and auto-organize your reports from [Carnet santé Québec](https:
 - **Médications** (doctor prescriptions) — exported as a chronological CSV/JSON snapshot (drug, DIN, class, prescriber, pharmacy, refills remaining…), so you can see your medication picture period by period
 
 The portal has no bulk-export feature; this extension does it for you, inside your own signed-in session. The UI speaks 13 languages and follows your system's light/dark mode.
+
+## Features
+
+- **One-click bulk download** — labs, imaging and prescriptions, limited to periods that really contain data (detected automatically).
+- **Archives itself** — one dated PDF per report in section folders, plus a summary `index.csv` (and `donnees.json`).
+- **Your folder, your rules** — save anywhere on disk or in Downloads; rename the root/section folders; design your own filename template.
+- **Incremental** — already-downloaded reports are skipped, so periodic re-runs fetch only what is new.
+- **Prescription history as data** — a chronological CSV/JSON snapshot of medications (drug, DIN, class, prescriber, pharmacy, refills remaining).
+- **Clear progress** — progress bar, per-section counters, current file, elapsed/ETA and a colour-coded log.
+- **Private by design** — runs locally inside your own signed-in session; no third-party service, nothing collected or uploaded.
+- **Readable everywhere** — 13 interface languages, light/dark mode.
+
+## Screenshots
+
+<img src="docs/screenshots/popup-states.en.png" width="1030" alt="Popup: ready, downloading and done">
+
+Settings — save location, folder layout, filename template and pacing:
+
+<img src="docs/screenshots/options.en.png" width="620" alt="Settings page">
 
 ## What you get
 
@@ -110,4 +131,4 @@ Everything runs locally in your browser. **The extension talks to no third-party
 - Vaccinations are on a different portal; per-year lab values (`ResultatsAnalyse`) are not included.
 - For organizing **your own** health records — please use responsibly (the default delay is there for a reason).
 
-Developers: `npm test` — 41 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.
+Developers: `npm test` — 47 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.

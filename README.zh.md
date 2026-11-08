@@ -6,6 +6,7 @@
 
 - **Prélèvements**（化验 / 采样报告）
 - **Imagerie médicale**（医学影像报告）
+- **Médications**（医生处方药）——导出为按时间排序的 CSV/JSON 快照（药名、DIN、类别、处方医生、药房、剩余取药次数等），方便按时间段了解用药概况
 
 门户本身没有批量导出功能；本扩展在你的登录会话内替你完成。界面支持 13 种语言，并自动跟随系统深 / 浅色模式。
 
@@ -20,11 +21,14 @@ Downloads/
     │   └── 2026-02-01 - Hémogramme.pdf
     ├── Imagerie médicale/
     │   └── 2026-05-15 - Radiographie thorax.pdf
+    ├── Médications/
+    │   ├── ordonnances-20261107-1530.csv    ← 处方记录，每张一方，按日期排序
+    │   └── ordonnances-20261107-1530.json   ← 同样数据 + 分年份计数（用药概况）
     ├── index-20261107-1530.csv      ← 全部报告的汇总表
     └── donnees-20261107-1530.json   ← 同样数据的机器可读版
 ```
 
-已下载过的报告**自动跳过**，可以定期重跑，只增量获取新报告。
+已下载过的报告**自动跳过**，可以定期重跑，只增量获取新报告。处方药快照每次运行重新生成（仅数次请求；剩余取药次数会随时间变化）。
 
 ## 安装——每台电脑一次
 
@@ -74,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 | 设置 | 说明 |
 |---|---|
 | 报告保存文件夹 | **自选任意磁盘文件夹**（Chrome/Edge 桌面版）：报告连同子目录直接写入该文件夹。授权时选「允许每次访问」可免重复授权；不可用时回退下载目录 |
-| 根文件夹 / 两个子文件夹名 | 归档结构，默认 `Carnet santé/Prélèvements`、`Carnet santé/Imagerie médicale`（设置页有实时预览；填绝对路径会自动转为相对路径——浏览器禁止写到下载目录以外） |
+| 根文件夹 / 各板块子文件夹名 | 归档结构，默认 `Carnet santé/Prélèvements`、`Imagerie médicale`、`Médications`（设置页有实时预览；填绝对路径会自动转为相对路径——浏览器禁止写到下载目录以外） |
 | 文件名模板 | 可用变量 `{date} {label} {prescriber} {section} {id} {year}`，默认 `{date} - {label}` |
 | 每份报告间隔 | 默认 400ms——请保持大于 0，对站点友好 |
 | 时间段 | 自动检测：打开弹窗时先探测最早可用数据，只列出真实存在数据的时间段（避免查询无数据区间报错）；检测失败则回退固定档位 |
@@ -82,7 +86,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 
 ## 工作原理与隐私
 
-门户是无公开 API 的 Angular 应用。扩展复用你已有的登录会话：读取门户自身的 OIDC 令牌、以与网站前端相同的方式调用其私有 `/api/1` 接口（影像：列表 → 元数据 → PDF；化验：按年列表 → JSON 内嵌 base64 PDF），经 `chrome.downloads` 或 File System Access 保存。
+门户是无公开 API 的 Angular 应用。扩展复用你已有的登录会话：读取门户自身的 OIDC 令牌、以与网站前端相同的方式调用其私有 `/api/1` 接口（影像：列表 → 元数据 → PDF；化验：按年列表 → JSON 内嵌 base64 PDF；处方药：按 ≤2 年分段列表，无 PDF，写出 CSV/JSON 快照），经 `chrome.downloads` 或 File System Access 保存。
 
 全部处理都在本机浏览器完成。**扩展不连接任何第三方服务，不收集、不上传任何数据**；令牌仅用于以你的身份获取你自己的记录。
 
@@ -106,4 +110,4 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 - 不含疫苗接种（另一门户）；不含逐年化验数值明细（`ResultatsAnalyse`）。
 - 仅供整理**本人**健康记录——请合理使用（默认请求间隔即是为此）。
 
-开发者：`npm test` —— 36 个 node:test 单元 + 集成测试（针对模拟 `/api/1` 的完整流水线）。目录：`lib/`（纯逻辑与编排）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`、`folder/`。
+开发者：`npm test` —— 41 个 node:test 单元 + 集成测试（针对模拟 `/api/1` 的完整流水线）。目录：`lib/`（纯逻辑与编排）、`content/`（读令牌、调接口）、`background/`（下载与状态）、`popup/`、`options/`、`folder/`。

@@ -18,7 +18,7 @@ async function loadState() {
   state = Object.assign({
     running: false, progress: null, log: [], summary: null, tabId: null,
     lastDownloadId: null, fallbackCount: 0,
-    items: [], stats: { imaging: null, labs: null }, current: null, startedTs: null,
+    items: [], stats: { imaging: null, labs: null, meds: null }, current: null, startedTs: null,
   }, saved);
   return state;
 }
@@ -172,7 +172,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
         st.summary = null;
         st.fallbackCount = 0;
         st.items = [];
-        st.stats = { imaging: null, labs: null };
+        st.stats = { imaging: null, labs: null, meds: null };
         st.current = null;
         st.startedTs = Date.now();
         st.progress = { stage: 'start', ts: Date.now() };
@@ -211,7 +211,7 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
           summary: st.summary,
           fallbackCount: st.fallbackCount || 0,
           items: (st.items || []).slice(-100),
-          stats: st.stats || { imaging: null, labs: null },
+          stats: st.stats || { imaging: null, labs: null, meds: null },
           current: st.current,
           startedTs: st.startedTs,
           tabId: st.tabId,   // 弹窗重开时恢复承载标签页

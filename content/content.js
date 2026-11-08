@@ -57,7 +57,7 @@ if (self.__CSH_CONTENT) {
             log: function (level, msg) { post({ type: 'log', level: level, msg: msg }); },
             refresh: function () { return Promise.resolve(readToken()); },
           });
-          out.earliest = { labs: earliest.labs, imaging: earliest.imaging };
+          out.earliest = { labs: earliest.labs, imaging: earliest.imaging, meds: earliest.meds };
         } catch (e2) { /* 探测失败不影响登录状态展示 */ }
         return out;
       } catch (e) {

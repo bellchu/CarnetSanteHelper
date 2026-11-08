@@ -3,7 +3,7 @@
  * lib/pipeline.js 集成测试：
  * 用模拟的 /api/1（结构与逆向观察一致）跑完整流水线，
  * 覆盖：认证头、日期格式、文件命名与归档路径、base64 PDF 提取、
- * 去重、错误容忍、取消、索引清单生成。
+ * 去重、错误容忍、取消、索引清单生成、处方药（Médications）快照导出。
  */
 const test = require('node:test');
 const assert = require('node:assert');
@@ -61,6 +61,28 @@ const LAB_ITEM_BROKEN = {
 const LAB_PDF = '%PDF-1.4 labs report';
 const LAB_RAPPORTS = {
   rapports: [{ description: 'Hémogramme', contenu: core.bytesToBase64(ENC.encode(LAB_PDF)) }],
+};
+
+/* 处方药（OrdonnanceAvecService）模拟数据 */
+const MED_1 = {
+  Type: 'OrdonnanceAvecService',
+  Id: 'ord-1', IdOrdonnance: 'ord-1',
+  Date: `${Y}-03-10T00:00:00`, Duree: 30,
+  NomPrescripteur: 'Dubois', PrenomPrescripteur: 'Jean', Pharmacie: 'Pharmaprix Centre',
+  NombreDelivrancesAutorisees: 5, NombreDelivrancesRestantes: 2,
+  MedicamentPrescrit: {
+    DIN: '02239630', Nom: 'AMOXIL 250 mg gélule', LibelleClasse: 'Antibiotiques',
+    Posologies: [{ Description: '1 comprimé 3 fois par jour' }, { Description: 'pendant 7 jours' }],
+  },
+  DernierService: { Id: 's1', Date: `${Y}-04-01T00:00:00`, NomPharmacie: 'Pharmaprix Centre' },
+};
+const MED_2 = {
+  Id: 'ord-2', IdOrdonnance: 'ord-2',
+  Date: `${Y - 1}-06-15T00:00:00`, Duree: 90,
+  NomPrescripteur: 'Tremblay', PrenomPrescripteur: 'Marie', Pharmacie: 'Uniprix',
+  NombreDelivrancesAutorisees: 3, NombreDelivrancesRestantes: null,   // 配制药剩余次数为 null
+  MedicamentPrescrit: { DIN: '', Nom: 'Préparation magistrale', LibelleClasse: '', Posologies: [] },
+  DernierService: null,
 };
 
 /* 模拟服务器：记录 URL 与请求头，按路由返回 */
@@ -645,4 +667,124 @@ test('earliest 收紧起始年：不查询无数据年份（避免报错）；�
   assert.ok(s2.errors.some((e) => /range/.test(e.id)));
   assert.ok(srv2.calls.some((c) =>
     (c.url.includes('/Prelevements?') || c.url.includes('/ExamensImagerie?')) && yearOf(c.url) < Y - 1));
+});
+
+/* ---------- Médications：处方药历史快照 ---------- */
+
+function medRoutes(medsReply) {
+  return [
+    { match: (u) => u.endsWith('/api/1/Citoyens'), reply: () => resJson({ IdCitoyen: 'C123' }) },
+    {
+      match: (u) => u.includes('/Medications?'),
+      reply: (u) => {
+        assert.match(u, /DateDebut=\d{4}-\d{1,2}-\d{1,2}&DateFin=\d{4}-\d{1,2}-\d{1,2}/);   // 不补零
+        const m = /DateDebut=(\d{4})-\d+-\d+&DateFin=(\d{4})-\d+-\d+/.exec(u);
+        assert.ok(+m[2] - +m[1] <= 1, '区间不应超过 2 年（服务端跨度上限）: ' + u);
+        return medsReply(+m[1], +m[2]);
+      },
+    },
+  ];
+}
+
+test('Médications：快照 CSV+JSON 写出、≤2 年分段、跨段去重、并入统一索引', async () => {
+  const routes = medRoutes((ys, ye) => {
+    if (ye === Y) return resJson([MED_1]);
+    if (ys === Y - 2) return resJson([MED_2, MED_1]);   // MED_1 跨段重复 → 按 IdOrdonnance 去重
+    return resJson([]);
+  });
+  const srv = makeFetch(routes);
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: false, meds: true }, startYear: Y - 6 }),
+    makeEnv(srv.fetchImpl, downloads, new Map(), {})
+  );
+
+  assert.deepStrictEqual(summary.stats.meds, { found: 2, downloaded: 2, skipped: 0, failed: 0 });
+
+  // CSV 快照：BOM、表头、按日期升序、null 剩余次数留空
+  const csv = downloads.find((d) => d.filename.startsWith('Carnet santé/Médications/ordonnances-') && d.filename.endsWith('.csv'));
+  assert.ok(csv, downloads.map((d) => d.filename).join(', '));
+  assert.strictEqual(csv.bytes[0], 0xef);   // Excel 兼容 BOM
+  const csvText = new TextDecoder().decode(csv.bytes);
+  assert.ok(csvText.startsWith('date,medicament,din,classe,posologie,prescripteur,pharmacie,duree,'));
+  const i1 = csvText.indexOf('AMOXIL'), i2 = csvText.indexOf('Préparation magistrale');
+  assert.ok(i1 > 0 && i2 > 0 && i2 < i1, '按日期升序：Y-1 的处方应在 Y 之前');
+  assert.ok(csvText.includes('1 comprimé 3 fois par jour ; pendant 7 jours'));
+  assert.ok(csvText.includes('delivrancesRestantes,dernierServiceDate'));   // 表头含剩余次数/末次配药
+  assert.ok(csvText.includes(',Pharmaprix Centre'));
+
+  // JSON 快照：分年份计数 + 完整字段
+  const json = downloads.find((d) => d.filename.endsWith('.json') && d.filename.includes('ordonnances-'));
+  assert.ok(json);
+  const snap = JSON.parse(new TextDecoder().decode(json.bytes));
+  assert.strictEqual(snap.total, 2);
+  assert.deepStrictEqual(snap.parAnnee, { [Y - 1]: 1, [Y]: 1 });
+  assert.strictEqual(snap.ordonnances[1].din, '02239630');
+  assert.strictEqual(snap.ordonnances[1].dernierServiceDate, `${Y}-04-01`);
+  assert.strictEqual(snap.ordonnances[0].delivrancesRestantes, '');
+
+  // 处方行并入统一 index.csv
+  const index = downloads.find((d) => /index-.*\.csv$/.test(d.filename));
+  const indexText = new TextDecoder().decode(index.bytes);
+  assert.ok(indexText.includes('médications'));
+  assert.ok(indexText.includes('delivrances 2/5'));
+
+  // 每段一次列表请求，无逐条详情请求
+  const medCalls = srv.calls.filter((c) => c.url.includes('/Medications?'));
+  assert.strictEqual(medCalls.length, 4);   // (Y-6,Y-5)(Y-4,Y-3)(Y-2,Y-1)(Y,Y)
+});
+
+test('Médications：仅扫描不写任何文件', async () => {
+  const srv = makeFetch(medRoutes((ys, ye) => resJson(ye === Y ? [MED_1] : [])));
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: false, meds: true }, dryRun: true, startYear: Y - 1 }),
+    Object.assign(makeEnv(srv.fetchImpl, downloads, new Map(), {}), {
+      downloadFn: async () => ({ ok: true, dryRun: true }),
+    })
+  );
+  assert.strictEqual(downloads.length, 0);
+  assert.strictEqual(summary.stats.meds.found, 1);
+  assert.strictEqual(summary.stats.meds.downloaded, 1);
+  assert.ok(!summary.files.some((f) => f.includes('ordonnances-')));
+});
+
+test('Médications：earliest 收紧起始年，不查询更早区间', async () => {
+  const srv = makeFetch(medRoutes((ys) => (ys >= Y - 1 ? resJson([MED_1]) : resJson({}, 500))));
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: false, meds: true }, startYear: Y - 6, earliest: { meds: Y - 1 } }),
+    makeEnv(srv.fetchImpl, [], new Map(), {})
+  );
+  assert.strictEqual(summary.stats.meds.downloaded, 1);
+  assert.strictEqual(summary.errors.length, 0);
+  for (const c of srv.calls) {
+    if (c.url.includes('/Medications?')) assert.ok(yearOf(c.url) >= Y - 1, '不应查询早于最早数据的年份: ' + c.url);
+  }
+});
+
+test('Médications：列表整体失败 → 记错误、不写快照、found=0', async () => {
+  const srv = makeFetch(medRoutes(() => resJson({}, 500)));
+  const downloads = [];
+  const summary = await pipeline.runSweep(
+    baseJob({ sections: { labs: false, imaging: false, meds: true }, startYear: Y - 1 }),
+    makeEnv(srv.fetchImpl, downloads, new Map(), {})
+  );
+  assert.deepStrictEqual(summary.stats.meds, { found: 0, downloaded: 0, skipped: 0, failed: 0 });
+  assert.ok(summary.errors.some((e) => e.section === 'meds' && /range/.test(e.id)));
+  assert.ok(!downloads.some((d) => d.filename.includes('ordonnances-')));
+});
+
+test('probeEarliest：meds 逐年后退探测（数据后连续两空年即停）', async () => {
+  const routes = medRoutes((ys) => resJson(ys === Y || ys === Y - 1 ? [MED_1] : [])).concat([
+    { match: (u) => u.endsWith('/PrelevementsAccessibles'), reply: () => resJson({}, 403) },   // labs 未开放
+    { match: (u) => u.includes('/ExamensImagerie?'), reply: () => resJson([]) },               // imaging 无数据
+  ]);
+  const srv = makeFetch(routes);
+  const r = await pipeline.probeEarliest({ token: 'T' }, earliestEnv(srv.fetchImpl, new Map()));
+  assert.strictEqual(r.meds, Y - 1);
+  assert.strictEqual(r.labs, null);
+  assert.strictEqual(r.imaging, null);
+  const medYears = srv.calls.filter((c) => c.url.includes('/Medications?')).map((c) => yearOf(c.url));
+  assert.strictEqual(Math.min(...medYears), Y - 3);   // Y-2、Y-3 两空年后停
+  assert.ok(!medYears.includes(Y - 4));
 });

@@ -6,6 +6,7 @@ Descargue en lote y organice automáticamente sus informes de [Carnet santé Qu�
 
 - **Prélèvements** (resultados de laboratorio)
 - **Imagerie médicale** (imágenes médicas)
+- **Médications** (recetas médicas) — exportadas como instantánea CSV/JSON cronológica (medicamento, DIN, clase, prescriptor, farmacia, renovaciones restantes…), para ver su perfil de medicamentos período por período
 
 El portal no tiene exportación en lote; esta extensión lo hace por usted, dentro de su propia sesión iniciada. La interfaz habla 13 idiomas y sigue el modo claro/oscuro de su sistema.
 
@@ -20,11 +21,14 @@ Downloads/
     │   └── 2026-02-01 - Hémogramme.pdf
     ├── Imagerie médicale/
     │   └── 2026-05-15 - Radiographie thorax.pdf
+    ├── Médications/
+    │   ├── ordonnances-20261107-1530.csv    ← una fila por receta, ordenada por fecha
+    │   └── ordonnances-20261107-1530.json   ← mismos datos + conteos por año
     ├── index-20261107-1530.csv      ← tabla resumen de todos los informes
     └── donnees-20261107-1530.json   ← los mismos datos, legibles por máquina
 ```
 
-Los informes ya descargados se **omiten automáticamente**: puede ejecutarlo periódicamente y solo se descargan los nuevos.
+Los informes ya descargados se **omiten automáticamente**: puede ejecutarlo periódicamente y solo se descargan los nuevos. La instantánea de recetas se regenera en cada ejecución (unas pocas solicitudes; las renovaciones restantes cambian con el tiempo).
 
 ## Instalación — una vez por computadora
 
@@ -74,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 | Ajuste | Qué hace |
 |---|---|
 | Carpeta de informes | **Elija cualquier carpeta de su disco** (Chrome/Edge de escritorio): los informes se escriben directamente en ella, con subcarpetas. Elija «Permitir en cada visita» al autorizar, para evitar reautorizar. Vuelve a Descargas si no está disponible |
-| Carpeta raíz / subcarpetas | Estructura del archivo, por defecto `Carnet santé/Prélèvements` e `Imagerie médicale` (vista previa en vivo; las rutas absolutas se convierten en relativas — el navegador prohíbe escribir fuera de Descargas) |
+| Carpeta raíz / subcarpetas | Estructura del archivo, por defecto `Carnet santé/Prélèvements`, `Imagerie médicale` y `Médications` (vista previa en vivo; las rutas absolutas se convierten en relativas — el navegador prohíbe escribir fuera de Descargas) |
 | Plantilla de nombre | Variables `{date} {label} {prescriber} {section} {id} {year}`, por defecto `{date} - {label}` |
 | Retardo entre informes | Por defecto 400 ms — mantenlo por encima de 0, por cortesía con el sitio |
 | Período | Detectado automáticamente: al abrir, la extensión sondea sus datos más antiguos y solo ofrece períodos que existen realmente (evita errores en rangos vacíos); rangos fijos si falla la detección |
@@ -82,7 +86,7 @@ powershell -ExecutionPolicy Bypass -File tools\install.ps1
 
 ## Cómo funciona y privacidad
 
-El portal es una aplicación Angular sin API pública. La extensión reutiliza su sesión: lee el token OIDC del propio portal en la página, llama a los mismos endpoints privados `/api/1` que usa el sitio (imagen: lista → metadatos → PDF; laboratorio: listas anuales → PDF en base64 dentro del JSON) y guarda vía `chrome.downloads` o la API File System Access.
+El portal es una aplicación Angular sin API pública. La extensión reutiliza su sesión: lee el token OIDC del propio portal en la página, llama a los mismos endpoints privados `/api/1` que usa el sitio (imagen: lista → metadatos → PDF; laboratorio: listas anuales → PDF en base64 dentro del JSON; medicamentos: lista en tramos ≤2 años, sin PDF — se escribe como instantánea CSV/JSON) y guarda vía `chrome.downloads` o la API File System Access.
 
 Todo ocurre localmente en su navegador. **La extensión no se conecta a ningún servicio de terceros ni recopila ni envía nada**; el token solo se usa para obtener sus propios expedientes.
 
@@ -106,4 +110,4 @@ Todo ocurre localmente en su navegador. **La extensión no se conecta a ningún 
 - La vacunación está en otro portal; los valores anuales de laboratorio (`ResultatsAnalyse`) no se incluyen.
 - Para organizar **sus propios** expedientes de salud — úselo con sensatez (el retardo por defecto tiene su razón de ser).
 
-Desarrolladores: `npm test` — 36 pruebas unitarias + de integración que simulan todo el pipeline contra un `/api/1` falso. Estructura: `lib/` (lógica + orquestación), `content/` (token + llamadas), `background/` (descargas y estado), `popup/`, `options/`, `folder/`.
+Desarrolladores: `npm test` — 41 pruebas unitarias + de integración que simulan todo el pipeline contra un `/api/1` falso. Estructura: `lib/` (lógica + orquestación), `content/` (token + llamadas), `background/` (descargas y estado), `popup/`, `options/`, `folder/`.

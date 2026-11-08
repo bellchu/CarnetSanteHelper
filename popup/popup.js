@@ -16,7 +16,7 @@
   function renderStatic() {
     const map = {
       't-appTitle': 'appTitle', 't-sections': 'sections', 't-labs': 'labs', 't-imaging': 'imaging',
-      't-period': 'period', 't-onlyNew': 'onlyNew', 't-dryRun': 'dryRun',
+      't-meds': 'meds', 't-period': 'period', 't-onlyNew': 'onlyNew', 't-dryRun': 'dryRun',
     };
     for (const id of Object.keys(map)) $(id).textContent = T(map[id]);
     document.documentElement.dir = core.isRtl(lang) ? 'rtl' : 'ltr';   // 阿拉伯语等 RTL 语言
@@ -84,6 +84,7 @@
     const known = [
       $('labs').checked && earliestMap && earliestMap.labs,
       $('imaging').checked && earliestMap && earliestMap.imaging,
+      $('meds').checked && earliestMap && earliestMap.meds,
     ].filter(function (y) { return typeof y === 'number'; });
     const years = known.length ? core.buildPeriodOptions(Math.min.apply(null, known), thisYear) : [];
     let html = '';
@@ -169,7 +170,7 @@
 
   function collectJob() {
     return {
-      sections: { labs: $('labs').checked, imaging: $('imaging').checked },
+      sections: { labs: $('labs').checked, imaging: $('imaging').checked, meds: $('meds').checked },
       // 选中的起始年（探测完成前启动则沿用旧「回溯年数」默认）
       startYear: parseInt($('period').value, 10) ||
         (new Date().getFullYear() - (parseInt(savedOptions.yearsBack, 10) || 6)),
@@ -183,7 +184,7 @@
 
   async function start() {
     if (!tab) return;
-    if (!$('labs').checked && !$('imaging').checked) return;
+    if (!$('labs').checked && !$('imaging').checked && !$('meds').checked) return;
     $('start').disabled = true;
     const res = await chrome.runtime.sendMessage({ type: 'begin', tabId: tab.id, job: collectJob() });
     if (!res || res.ok === false) {
@@ -242,13 +243,18 @@
     if (s.summary) renderSummary(s.summary, s.fallbackCount || 0);
   }
 
+  // 板段名 → 本地化标签（进度/统计/汇总共用）
+  function sectionName(s) {
+    return s === 'labs' ? T('labs') : (s === 'meds' ? T('meds') : T('imaging'));
+  }
+
   function renderProgress(p) {
     // 只渲染阶段性标题；逐条进度/计数/日志由 renderLive 负责
     let line = '';
     if (p.stage === 'start') line = T('running');
     else if (p.stage === 'citizen') line = T('loggedInAs', { name: p.name || '' });
-    else if (p.stage === 'section') line = (p.section === 'labs' ? T('labs') : T('imaging')) + '…';
-    else if (p.stage === 'list') line = (p.section === 'labs' ? T('labs') : T('imaging')) + ' — ' + T('found', { n: p.total });
+    else if (p.stage === 'section') line = sectionName(p.section) + '…';
+    else if (p.stage === 'list') line = sectionName(p.section) + ' — ' + T('found', { n: p.total });
     else if (p.stage === 'labsGateOff') line = T('labsGateOff');
     if (line) $('progressLine').textContent = line;
   }
@@ -263,12 +269,15 @@
   function renderLive(s) {
     const img = s.stats && s.stats.imaging;
     const la = s.stats && s.stats.labs;
-    const sig = JSON.stringify([img, la, s.current]);
+    const me = s.stats && s.stats.meds;
+    const secSum = function (pick) {
+      return [img, la, me].reduce(function (acc, st) { return acc + (st ? pick(st) : 0); }, 0);
+    };
+    const sig = JSON.stringify([img, la, me, s.current]);
     if (sig !== liveSig) {
       liveSig = sig;
-      const found = (img ? img.found : 0) + (la ? la.found : 0);
-      const done = (img ? img.downloaded + img.skipped + img.failed : 0) +
-        (la ? la.downloaded + la.skipped + la.failed : 0);
+      const found = secSum(function (st) { return st.found; });
+      const done = secSum(function (st) { return st.downloaded + st.skipped + st.failed; });
       const pct = found ? Math.min(100, Math.round(done * 100 / found)) : 0;
       $('barFill').style.width = pct + '%';
       $('pct').textContent = found ? (pct + '% · ' + done + '/' + found) : '';
@@ -279,19 +288,17 @@
           ' · ' + T('skipped', { n: st.skipped }) + ' · ' + T('failed', { n: st.failed }) +
           ' / ' + T('found', { n: st.found }) + '</div>';
       };
-      $('secStats').innerHTML = row(img, T('imaging')) + row(la, T('labs'));
+      $('secStats').innerHTML = row(img, T('imaging')) + row(la, T('labs')) + row(me, T('meds'));
 
       if (s.current) {
-        $('curLine').textContent = T('current') + ': ' +
-          (s.current.section === 'labs' ? T('labs') : T('imaging')) + ' — ' +
+        $('curLine').textContent = T('current') + ': ' + sectionName(s.current.section) + ' — ' +
           T('processing', { i: s.current.i, n: s.current.n }) +
           (s.current.label ? ' · ' + s.current.label : '');
       }
     }
 
-    const found = (img ? img.found : 0) + (la ? la.found : 0);
-    const done = (img ? img.downloaded + img.skipped + img.failed : 0) +
-      (la ? la.downloaded + la.skipped + la.failed : 0);
+    const found = secSum(function (st) { return st.found; });
+    const done = secSum(function (st) { return st.downloaded + st.skipped + st.failed; });
     if (s.startedTs) {
       const el = Date.now() - s.startedTs;
       let meta = T('elapsed') + ' ' + fmtDur(el);
@@ -326,13 +333,15 @@
       box.innerHTML = '<div class="err">' + escapeHtml(msg) + '</div>';
       return;
     }
-    const im = sum.stats.imaging, la = sum.stats.labs;
+    const im = sum.stats.imaging, la = sum.stats.labs, me = sum.stats.meds;
     const html = [
       '<div><b>' + T('done') + (sum.cancelled ? ' (' + T('cancelled') + ')' : '') + '</b></div>',
       '<div class="stat">' + T('imaging') + ': ' + T('downloaded', { n: im.downloaded }) + ' / ' + T('found', { n: im.found }) +
       ' · ' + T('skipped', { n: im.skipped }) + ' · ' + T('failed', { n: im.failed }) + '</div>',
       '<div class="stat">' + T('labs') + ': ' + T('downloaded', { n: la.downloaded }) + ' / ' + T('found', { n: la.found }) +
       ' · ' + T('skipped', { n: la.skipped }) + ' · ' + T('failed', { n: la.failed }) + '</div>',
+      '<div class="stat">' + T('meds') + ': ' + T('downloaded', { n: me.downloaded }) + ' / ' + T('found', { n: me.found }) +
+      ' · ' + T('skipped', { n: me.skipped }) + ' · ' + T('failed', { n: me.failed }) + '</div>',
     ];
     if (fallbackCount > 0) html.push('<div class="err">' + escapeHtml(T('fallbackNotice', { n: fallbackCount })) + '</div>');
     if (sum.errors && sum.errors.length) {
@@ -353,8 +362,9 @@
     $('start').addEventListener('click', start);
     $('dryRun').addEventListener('change', updateStartLabel);
     // 勾选板块变化 → 可选时间段随之按其最早数据年重算
-    $('labs').addEventListener('change', function () { renderPeriods(false); });
-    $('imaging').addEventListener('change', function () { renderPeriods(false); });
+    ['labs', 'imaging', 'meds'].forEach(function (id) {
+      $(id).addEventListener('change', function () { renderPeriods(false); });
+    });
     $('cancel').addEventListener('click', function () {
       // 立即反馈：按钮进入「取消中」禁用态，等 pipeline 实际停止后由 exitRunningUI 复原
       this.disabled = true;

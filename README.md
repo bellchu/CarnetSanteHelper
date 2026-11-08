@@ -6,6 +6,7 @@ Bulk-download and auto-organize your reports from [Carnet santé Québec](https:
 
 - **Prélèvements** (lab results)
 - **Imagerie médicale** (medical imaging)
+- **Médications** (doctor prescriptions) — exported as a chronological CSV/JSON snapshot (drug, DIN, class, prescriber, pharmacy, refills remaining…), so you can see your medication picture period by period
 
 The portal has no bulk-export feature; this extension does it for you, inside your own signed-in session. The UI speaks 13 languages and follows your system's light/dark mode.
 
@@ -20,11 +21,14 @@ Downloads/
     │   └── 2026-02-01 - Hémogramme.pdf
     ├── Imagerie médicale/
     │   └── 2026-05-15 - Radiographie thorax.pdf
+    ├── Médications/
+    │   ├── ordonnances-20261107-1530.csv    ← prescriptions, one row each, sorted by date
+    │   └── ordonnances-20261107-1530.json   ← same + per-year counts (medication overview)
     ├── index-20261107-1530.csv      ← summary table of all reports
     └── donnees-20261107-1530.json   ← same data, machine-readable
 ```
 
-Already-downloaded reports are **skipped automatically**, so you can re-run periodically and only new reports are fetched.
+Already-downloaded reports are **skipped automatically**, so you can re-run periodically and only new reports are fetched. The prescriptions snapshot is regenerated on each run (a handful of requests; refills change over time).
 
 ## Install — once per computer
 
@@ -74,7 +78,7 @@ Already cloned? From the repo, run `bash tools/install.sh` (macOS/Linux) or `pow
 | Setting | What it does |
 |---|---|
 | Reports folder | **Pick any folder on your disk** (Chrome/Edge desktop): reports are written directly into it, with subfolders. Choose "Allow on every visit" when granting access, to avoid re-authorizing. Falls back to Downloads if unavailable |
-| Root / section subfolders | Archive layout, default `Carnet santé/Prélèvements` + `Imagerie médicale` (live preview in settings; absolute paths are converted to relative — the browser forbids writing outside Downloads) |
+| Root / section subfolders | Archive layout, default `Carnet santé/Prélèvements` + `Imagerie médicale` + `Médications` (live preview in settings; absolute paths are converted to relative — the browser forbids writing outside Downloads) |
 | Filename template | Variables `{date} {label} {prescriber} {section} {id} {year}`, default `{date} - {label}` |
 | Delay between reports | Default 400 ms — please keep it above 0, it's polite to the site |
 | Time period | Detected automatically: on open the extension probes your earliest available data and only offers periods that actually exist (avoids errors on empty ranges); fixed ranges if detection fails |
@@ -82,7 +86,7 @@ Already cloned? From the repo, run `bash tools/install.sh` (macOS/Linux) or `pow
 
 ## How it works & privacy
 
-The portal is an Angular app with a private API. The extension reuses your existing session: it reads the portal's own OIDC token from the page, calls the same `/api/1` endpoints the site itself uses (imaging: list → report metadata → PDF; labs: yearly lists → PDF embedded as base64 in JSON), and saves via `chrome.downloads` or the File System Access API.
+The portal is an Angular app with a private API. The extension reuses your existing session: it reads the portal's own OIDC token from the page, calls the same `/api/1` endpoints the site itself uses (imaging: list → report metadata → PDF; labs: yearly lists → PDF embedded as base64 in JSON; medications: list queried in ≤2-year slices, no PDF — written out as a CSV/JSON snapshot), and saves via `chrome.downloads` or the File System Access API.
 
 Everything runs locally in your browser. **The extension talks to no third-party service and collects/uploads nothing**; the token is only used to fetch your own records.
 
@@ -106,4 +110,4 @@ Everything runs locally in your browser. **The extension talks to no third-party
 - Vaccinations are on a different portal; per-year lab values (`ResultatsAnalyse`) are not included.
 - For organizing **your own** health records — please use responsibly (the default delay is there for a reason).
 
-Developers: `npm test` — 36 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.
+Developers: `npm test` — 41 node:test unit + integration tests covering the full pipeline against a mock `/api/1`. Layout: `lib/` (logic + orchestration, dependency-injected), `content/` (token + API calls), `background/` (downloads & state), `popup/`, `options/`, `folder/`.

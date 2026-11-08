@@ -6,6 +6,7 @@ Téléchargez en lot et organisez automatiquement vos rapports du [Carnet santé
 
 - **Prélèvements** (résultats de laboratoire)
 - **Imagerie médicale** (examens d'imagerie)
+- **Médications** (ordonnances) — exportées en un instantané CSV/JSON chronologique (médicament, DIN, classe, prescripteur, pharmacie, renouvellements restants…), pour voir votre profil de médications période par période
 
 Le portail n'offre aucun export en lot ; cette extension le fait pour vous, dans votre propre session connectée. L'interface parle 13 langues et suit le mode clair/sombre de votre système.
 
@@ -20,11 +21,14 @@ Downloads/
     │   └── 2026-02-01 - Hémogramme.pdf
     ├── Imagerie médicale/
     │   └── 2026-05-15 - Radiographie thorax.pdf
+    ├── Médications/
+    │   ├── ordonnances-20261107-1530.csv    ← une ligne par ordonnance, triée par date
+    │   └── ordonnances-20261107-1530.json   ← mêmes données + compteurs par année
     ├── index-20261107-1530.csv      ← tableau récapitulatif de tous les rapports
     └── donnees-20261107-1530.json   ← les mêmes données, lisibles par machine
 ```
 
-Les rapports déjà téléchargés sont **ignorés automatiquement** : vous pouvez relancer périodiquement, seuls les nouveaux rapports sont récupérés.
+Les rapports déjà téléchargés sont **ignorés automatiquement** : vous pouvez relancer périodiquement, seuls les nouveaux rapports sont récupérés. L'instantané des ordonnances est régénéré à chaque exécution (quelques requêtes ; les renouvellements restants changent avec le temps).
 
 ## Installation — une fois par ordinateur
 
@@ -74,7 +78,7 @@ Dépôt déjà cloné ? Depuis le dépôt, lancez `bash tools/install.sh` (macOS
 | Réglage | Rôle |
 |---|---|
 | Dossier des rapports | **Choisissez n'importe quel dossier de votre disque** (Chrome/Edge bureau) : les rapports y sont écrits directement, avec sous-dossiers. Choisissez « Autoriser à chaque visite » lors de l'accès pour éviter les réautorisations. Retour au dossier de téléchargements si indisponible |
-| Dossier racine / sous-dossiers | Structure d'archivage, par défaut `Carnet santé/Prélèvements` et `Imagerie médicale` (aperçu en direct dans les réglages ; les chemins absolus sont convertis en chemins relatifs — le navigateur interdit d'écrire ailleurs) |
+| Dossier racine / sous-dossiers | Structure d'archivage, par défaut `Carnet santé/Prélèvements`, `Imagerie médicale` et `Médications` (aperçu en direct dans les réglages ; les chemins absolus sont convertis en chemins relatifs — le navigateur interdit d'écrire ailleurs) |
 | Modèle de nom de fichier | Variables `{date} {label} {prescriber} {section} {id} {year}`, par défaut `{date} - {label}` |
 | Délai entre rapports | Par défaut 400 ms — merci de le garder au-dessus de 0, c'est poli envers le site |
 | Période | Détectée automatiquement : à l'ouverture, l'extension sonde vos données les plus anciennes et ne propose que des périodes existant réellement (évite les erreurs sur plages vides) ; plages fixes si la détection échoue |
@@ -82,7 +86,7 @@ Dépôt déjà cloné ? Depuis le dépôt, lancez `bash tools/install.sh` (macOS
 
 ## Fonctionnement et confidentialité
 
-Le portail est une application Angular sans API publique. L'extension réutilise votre session : elle lit le jeton OIDC du portail dans la page, appelle les mêmes endpoints privés `/api/1` que le site lui-même (imagerie : liste → métadonnées → PDF ; prélèvements : listes annuelles → PDF en base64 dans le JSON), et sauvegarde via `chrome.downloads` ou l'API File System Access.
+Le portail est une application Angular sans API publique. L'extension réutilise votre session : elle lit le jeton OIDC du portail dans la page, appelle les mêmes endpoints privés `/api/1` que le site lui-même (imagerie : liste → métadonnées → PDF ; prélèvements : listes annuelles → PDF en base64 dans le JSON ; médications : liste par tranches ≤2 ans, sans PDF — écrite en instantané CSV/JSON), et sauvegarde via `chrome.downloads` ou l'API File System Access.
 
 Tout se passe localement dans votre navigateur. **L'extension ne contacte aucun service tiers et ne collecte n'envoie rien** ; le jeton sert uniquement à récupérer vos propres dossiers.
 
@@ -106,4 +110,4 @@ Tout se passe localement dans votre navigateur. **L'extension ne contacte aucun 
 - Vaccination sur un autre portail ; valeurs de laboratoire annuelles (`ResultatsAnalyse`) non incluses.
 - Pour organiser **vos propres** dossiers de santé — utilisez-le raisonnablement (le délai par défaut n'est pas là pour rien).
 
-Développeurs : `npm test` — 36 tests unit + intégration simulants tout le pipeline face à un `/api/1` factice. Arborescence : `lib/` (logique + orchestration), `content/` (jeton + appels API), `background/` (téléchargements & état), `popup/`, `options/`, `folder/`.
+Développeurs : `npm test` — 41 tests unit + intégration simulants tout le pipeline face à un `/api/1` factice. Arborescence : `lib/` (logique + orchestration), `content/` (jeton + appels API), `background/` (téléchargements & état), `popup/`, `options/`, `folder/`.

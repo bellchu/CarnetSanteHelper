@@ -6,6 +6,7 @@ Telechaje an lo epi òganize otomatikman rapò ou yo sou [Carnet santé Québec]
 
 - **Prélèvements** (rezilta laboratwa)
 - **Imagerie médicale** (imaj medikal)
+- **Médications** (òdonnans doktè) — ekspòte kòm yon enstantane CSV/JSON nan lòd kwonolojik (medikaman an, DIN, klas li, doktè a, famasi a, renouvèlman ki rete…) pou wè sitiyasyon medikaman ou peryòd pa peryòd
 
 Pòtal la pa gen fonksyon ekspòte an lo; estansyon sa a fè l pou ou, nan sesyon ou menm ki konekte. Entèfas la pale 13 lang, epi li swiv mòd klè/nwa sistèm ou an.
 
@@ -20,11 +21,14 @@ Downloads/
     │   └── 2026-02-01 - Hémogramme.pdf
     ├── Imagerie médicale/
     │   └── 2026-05-15 - Radiographie thorax.pdf
+    ├── Médications/
+    │   ├── ordonnances-20261107-1530.csv    ← yon liy pa òdonnans, klase pa dat
+    │   └── ordonnances-20261107-1530.json   ← menm done yo + konte pa ane
     ├── index-20261107-1530.csv      ← tablo rezime tout rapò yo
     └── donnees-20261107-1530.json   ← menm done yo, fòma machin
 ```
 
-Rapò ki deja telechaje yo **inyore otomatikman**: ou ka reji li peryodikman, se sèlman rapò nouvo ki ap telechaje.
+Rapò ki deja telechaje yo **inyore otomatikman**: ou ka reji li peryodikman, se sèlman rapò nouvo ki ap telechaje. Enstantane òdonnans yo rejenere chak fwa w ap lance l (kèk demann sèlman; renouvèlman ki rete yo chanje ak tan).
 
 ## Enstale — yon fwa pa òdinatè
 
@@ -74,7 +78,7 @@ Ou deja klone l? Andedan depo a, kouri `bash tools/install.sh` (macOS/Linux) osw
 | Paramèt | Sa l fè |
 |---|---|
 | Dosiye rapò yo | **Chwazi nenpòt ki dosiye sou disk ou** (Chrome/Edge òdinatè): rapò yo ekri dirèkteman ladan l, ak sou-dosiye. Chwazi «Pèmèt chak vizit» lè w ap otorize, pou ou pa dwe reotorize. Si l pa disponib, l retounen nan dosiye telechajman an |
-| Dosiye rasin / sou-dosiye | Estrikti achiv la, pa défòt `Carnet santé/Prélèvements` ak `Imagerie médicale` (aperçu an dirèk; chemen absoli yo konvèti an chemen relatif — navigatè a pa pèmèt ekri deyò dosiye telechajman an) |
+| Dosiye rasin / sou-dosiye | Estrikti achiv la, pa défòt `Carnet santé/Prélèvements`, `Imagerie médicale` ak `Médications` (aperçu an dirèk; chemen absoli yo konvèti an chemen relatif — navigatè a pa pèmèt ekri deyò dosiye telechajman an) |
 | Modèl non fichye | Variable `{date} {label} {prescriber} {section} {id} {year}`, pa défòt `{date} - {label}` |
 | Intèval ant rapò | 400 ms pa défòt — kite l anlè 0, se rèspe pou sit la |
 | Peryòd | Detekte otomatikman: lè w ouvri l, estansyon an chwazi done ki pi ansyen ou epi li sèlman ofri peryòd ki egziste reyèlman (evite erè sou plaj vid); plaj fiks si deteksyon an echwe |
@@ -82,7 +86,7 @@ Ou deja klone l? Andedan depo a, kouri `bash tools/install.sh` (macOS/Linux) osw
 
 ## Kòman l mache ak vi prive
 
-Pòtal la se yon aplikasyon Angular san API piblik. Estansyon an reitilize sesyon ou: li li jeton OIDC pòtal la nan paj la, li rele menm endpoint prive `/api/1` ke sit la sèvi (imaj: lis → metadone → PDF; laboratwa: lis anyèl → PDF an base64 andedan JSON la), epi li sove atravè `chrome.downloads` oswa API File System Access.
+Pòtal la se yon aplikasyon Angular san API piblik. Estansyon an reitilize sesyon ou: li li jeton OIDC pòtal la nan paj la, li rele menm endpoint prive `/api/1` ke sit la sèvi (imaj: lis → metadone → PDF; laboratwa: lis anyèl → PDF an base64 andedan JSON la; medikaman: lis pa moso ≤2 ane, san PDF — ekri kòm enstantane CSV/JSON), epi li sove atravè `chrome.downloads` oswa API File System Access.
 
 Tout bagay pase lokalman nan navigatè ou a. **Estansyon an pa konekte ak okenn sèvis twazyèm pati, li pa kolekte ni voye anyen**; jeton an sèlman sèvi pou jwenn dosye ou menm.
 
@@ -106,4 +110,4 @@ Tout bagay pase lokalman nan navigatè ou a. **Estansyon an pa konekte ak okenn 
 - Vaksinasyon se sou yon lòt pòtal; valè laboratwa anyèl (`ResultatsAnalyse`) pa enkli.
 - Pou òganize **dosye sante ou menm** — itilize l avèk judgement (intèval pa défòt la gen rezon l).
 
-Devlopè: `npm test` — 36 tès inite + entegrasyon ki simile tout pipeline a kont yon `/api/1` fèt ak men. Estrikti: `lib/` (lojik + òkestrasyon), `content/` (jeton + apèl API), `background/` (telechajman eta), `popup/`, `options/`, `folder/`.
+Devlopè: `npm test` — 41 tès inite + entegrasyon ki simile tout pipeline a kont yon `/api/1` fèt ak men. Estrikti: `lib/` (lojik + òkestrasyon), `content/` (jeton + apèl API), `background/` (telechajman eta), `popup/`, `options/`, `folder/`.

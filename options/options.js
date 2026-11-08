@@ -4,7 +4,7 @@
   const core = window.CSHCore;
   const $ = function (id) { return document.getElementById(id); };
 
-  const FIELDS = ['rootFolder', 'labsFolder', 'imagingFolder', 'template', 'delayMs', 'dedupe', 'writeIndex', 'lang', 'yearsBack'];
+  const FIELDS = ['rootFolder', 'labsFolder', 'imagingFolder', 'medsFolder', 'template', 'delayMs', 'dedupe', 'writeIndex', 'lang', 'yearsBack'];
   let lang = 'zh';
   let fsaDir = null;   // 已选报告保存文件夹名（null = 浏览器下载目录模式）
   const T = function (key, vars) { return core.t(lang, key, vars); };
@@ -12,10 +12,10 @@
   function renderStatic() {
     const map = {
       't-appTitle': 'appTitle', 't-lang': 'lang', 't-root': 'root', 't-labsDir': 'labsDir',
-      't-imagingDir': 'imagingDir', 't-tpl': 'tpl', 't-delay': 'delay', 't-onlyNew': 'onlyNew',
-      't-writeIndex': 'writeIndex', 't-yearsBackLbl': 'yearsBack', 't-saveLocation': 'saveLocation',
-      't-saveDir': 'saveDir', 't-grpLocation': 'grpLocation', 't-grpNaming': 'grpNaming',
-      't-grpBehavior': 'grpBehavior',
+      't-imagingDir': 'imagingDir', 't-medsDir': 'medsDir', 't-tpl': 'tpl', 't-delay': 'delay',
+      't-onlyNew': 'onlyNew', 't-writeIndex': 'writeIndex', 't-yearsBackLbl': 'yearsBack',
+      't-saveLocation': 'saveLocation', 't-saveDir': 'saveDir', 't-grpLocation': 'grpLocation',
+      't-grpNaming': 'grpNaming', 't-grpBehavior': 'grpBehavior',
     };
     for (const id of Object.keys(map)) $(id).textContent = T(map[id]);
     document.documentElement.dir = core.isRtl(lang) ? 'rtl' : 'ltr';   // 阿拉伯语等 RTL 语言
@@ -82,6 +82,7 @@
       rootFolder: normFolder($('rootFolder').value, core.DEFAULTS.rootFolder),
       labsFolder: normFolder($('labsFolder').value, core.DEFAULTS.labsFolder),
       imagingFolder: normFolder($('imagingFolder').value, core.DEFAULTS.imagingFolder),
+      medsFolder: normFolder($('medsFolder').value, core.DEFAULTS.medsFolder),
     };
   }
 
@@ -110,9 +111,10 @@
     $('tplPreview').textContent = core.folderPath(f.rootFolder, f.imagingFolder) + '/' + sample(f.imagingFolder, 'Radiographie thorax');
     $('locPreviewLabs').textContent = base + core.folderPath(f.rootFolder, f.labsFolder) + '/' + sample(f.labsFolder, 'Hémogramme');
     $('locPreviewImg').textContent = base + core.folderPath(f.rootFolder, f.imagingFolder) + '/' + sample(f.imagingFolder, 'Radiographie thorax');
+    $('locPreviewMeds').textContent = base + core.folderPath(f.rootFolder, f.medsFolder) + '/ordonnances-20260101-1200.csv';
 
     // 输入被净化时提示（如填了绝对路径）
-    const changed = ['rootFolder', 'labsFolder', 'imagingFolder'].some(function (id) {
+    const changed = ['rootFolder', 'labsFolder', 'imagingFolder', 'medsFolder'].some(function (id) {
       return $('' + id).value.trim() !== f[id];
     });
     $('locHint').textContent = changed ? T('absNote') : '';
@@ -127,6 +129,7 @@
     $('rootFolder').value = opts.rootFolder;
     $('labsFolder').value = opts.labsFolder;
     $('imagingFolder').value = opts.imagingFolder;
+    $('medsFolder').value = opts.medsFolder;
     $('template').value = opts.template;
     $('delayMs').value = opts.delayMs;
     $('dedupe').checked = opts.dedupe;
@@ -162,7 +165,7 @@
     $('clearDedup').addEventListener('click', clearDedup);
     $('lang').addEventListener('change', function () { lang = $('lang').value; renderStatic(); });
     $('template').addEventListener('input', updatePreview);
-    ['rootFolder', 'labsFolder', 'imagingFolder'].forEach(function (id) {
+    ['rootFolder', 'labsFolder', 'imagingFolder', 'medsFolder'].forEach(function (id) {
       $(id).addEventListener('input', updatePreview);
     });
     $('pickFolder').addEventListener('click', pickFolder);

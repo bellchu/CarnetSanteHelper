@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Carnet santé Helper",
-  "version": "1.0.0",
-  "description": "辅助 Carnet santé Québec：批量下载并整理 Prélèvements（化验）与 Imagerie médicale（影像）报告",
+  "version": "1.1.0",
+  "description": "Bulk-download and organize lab (Prélèvements), imaging and medication-prescription reports from Carnet santé Québec. Local only, no third parties",
   "permissions": ["downloads", "storage", "scripting"],
   "host_permissions": [
     "https://www.carnetsante.gouv.qc.ca/*",

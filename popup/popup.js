@@ -333,7 +333,10 @@
       box.innerHTML = '<div class="err">' + escapeHtml(msg) + '</div>';
       return;
     }
-    const im = sum.stats.imaging, la = sum.stats.labs, me = sum.stats.meds;
+    // 升级后弹窗重开会渲染旧版本运行留下的汇总（无 meds 统计）→ 缺失板块按 0 显示
+    const zero = { downloaded: 0, found: 0, skipped: 0, failed: 0 };
+    const st = sum.stats || {};
+    const im = st.imaging || zero, la = st.labs || zero, me = st.meds || zero;
     const html = [
       '<div><b>' + T('done') + (sum.cancelled ? ' (' + T('cancelled') + ')' : '') + '</b></div>',
       '<div class="stat">' + T('imaging') + ': ' + T('downloaded', { n: im.downloaded }) + ' / ' + T('found', { n: im.found }) +
